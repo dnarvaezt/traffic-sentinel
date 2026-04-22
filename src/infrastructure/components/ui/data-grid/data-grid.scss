@@ -1,0 +1,91 @@
+@reference "../../../assets/globals.scss";
+
+.data-grid {
+  @apply w-full border border-border rounded-lg;
+  @apply bg-card text-card-foreground;
+  @apply flex flex-col;
+  @apply max-h-[600px];
+  overflow: scroll;
+  overflow-x: scroll;
+  overflow-y: scroll;
+
+  &--loading,
+  &--error,
+  &--empty {
+    @apply flex items-center justify-center p-8;
+    @apply min-h-[200px];
+    overflow: hidden;
+  }
+
+  &__loading-message,
+  &__error-message,
+  &__empty-message {
+    @apply text-muted-foreground;
+  }
+
+  &__error-message {
+    @apply text-destructive;
+  }
+
+  &__header {
+    @apply flex border-b border-border;
+    @apply bg-muted;
+    @apply sticky top-0 z-10;
+    flex-shrink: 0;
+  }
+
+  &__header-cell {
+    @apply px-4 py-3 font-semibold text-sm;
+    @apply border-r border-border last:border-r-0;
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  &__list {
+    flex-shrink: 0;
+    overflow: hidden !important;
+
+    > * {
+      overflow: hidden !important;
+    }
+
+    [style*="overflow"] {
+      overflow: hidden !important;
+    }
+  }
+
+  &__row {
+    @apply flex border-b border-border;
+    @apply hover:bg-muted/50;
+  }
+
+  &__cell {
+    @apply px-4 py-2 text-sm;
+    @apply border-r border-border last:border-r-0;
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  &::-webkit-scrollbar {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 6px;
+    background: hsl(var(--muted));
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid hsl(var(--muted));
+    border-radius: 6px;
+    background: hsl(var(--muted-foreground) / 0.3);
+
+    &:hover {
+      background: hsl(var(--muted-foreground) / 0.5);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: hsl(var(--muted));
+  }
+}

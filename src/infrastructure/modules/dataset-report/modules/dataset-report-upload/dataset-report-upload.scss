@@ -1,0 +1,51 @@
+@reference "../../../../assets/globals.scss";
+
+.dataset-report-upload {
+  @apply flex flex-col gap-6 w-full max-w-2xl mx-auto p-6;
+
+  &__dropzone {
+    @apply relative cursor-pointer transition-all duration-200;
+    @apply border-2 border-dashed border-transparent;
+    @apply hover:border-primary/50;
+
+    &--active {
+      @apply border-primary bg-accent/10;
+    }
+  }
+
+  &__input {
+    @apply pointer-events-none absolute opacity-0;
+  }
+
+  &__content {
+    @apply flex flex-col items-center justify-center gap-4 py-8 text-center;
+  }
+
+  &__icon {
+    @apply text-muted-foreground transition-colors duration-200;
+    .dataset-report-upload__dropzone:hover & {
+      @apply text-primary;
+    }
+  }
+
+  &__text {
+    @apply text-lg font-medium text-foreground;
+  }
+
+  &__subtext {
+    @apply text-sm text-muted-foreground;
+  }
+
+  &__error,
+  &__success {
+    @apply mt-4;
+  }
+
+  &__error-content {
+    @apply flex flex-col gap-3;
+  }
+
+  &__error-message {
+    @apply flex-1;
+  }
+}

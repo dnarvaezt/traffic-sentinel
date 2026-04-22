@@ -1,0 +1,1340 @@
+---
+alwaysApply: true
+---
+
+# Clean Architecture Pattern
+
+## Definición
+
+Este proyecto implementa **Clean Architecture** con **Domain-Driven Design (DDD)** y organización **modular por features**.
+
+## Estructura de Capas Obligatoria
+
+### 1. Application Layer (`src/application/`)
+
+Lógica de negocio pura, **completamente independiente de frameworks y UI**.
+
+**REGLA CRÍTICA**: Esta capa NO debe importar:
+
+- ❌ React, Next.js, Vue, Angular u otro framework de UI
+- ❌ Librerías de componentes UI
+- ❌ Hooks de React (`useState`, `useEffect`, etc.)
+- ❌ Context API de React
+- ❌ Nada relacionado con presentación o infraestructura
+
+**Solo puede depender de**:
+
+- ✅ TypeScript/JavaScript puro
+- ✅ Librerías de utilidades puras (lodash, date-fns, etc.)
+- ✅ Abstracciones propias del dominio
+
+#### 1.1 Core (`application/core/`)
+
+Abstracciones y utilidades base del sistema:
+
+```text
+application/core/
+├── entity/           # Entidad base genérica
+├── routes/           # Servicio de rutas
+└── utils/            # Utilidades transversales (event bus, uuid)
+```
+
+#### 1.2 Domain (`application/domain/`)
+
+Módulos de dominio organizados por entidad:
+
+```text
+application/domain/[entity]/
+├── [entity].model.ts                    # Modelos e interfaces
+├── [entity].service.ts                  # Lógica de negocio
+├── [entity].repository.interface.ts     # Contrato de persistencia
+├── [entity].repository.memory.ts        # Implementación (memory/mock)
+├── [entity].provider.ts                 # Factory/Provider (sin React, patrón de diseño puro)
+├── [entity].mock.data.ts                # Datos de prueba
+├── [entity].exceptions.ts               # Excepciones específicas
+└── index.ts                             # Barrel export
+```
+
+**IMPORTANTE sobre `[entity].provider.ts`**:
+
+- ✅ Es un patrón Factory o Provider genérico (sin framework)
+- ✅ Instancia y configura el servicio con sus dependencias
+- ✅ Solo usa TypeScript/JavaScript puro
+- ❌ NO es un React Context Provider
+- ❌ NO importa React ni usa hooks
+
+**Dominios existentes**: activity, appointment, article, category, client, employee, invoice, product, stock, transaction
+
+---
+
+### 2. Infrastructure Layer (`src/infrastructure/`)
+
+Implementaciones concretas, adaptadores y UI.
+
+#### 2.1 Components (`infrastructure/components/`)
+
+Componentes UI reutilizables y transversales:
+
+```text
+infrastructure/components/
+├── empty-state/
+├── icons/
+├── layout/
+├── pagination/
+├── theme/
+└── [component]/
+    ├── [component].tsx
+    ├── [component].scss
+    └── index.ts
+```
+
+#### 2.2 Modules (`infrastructure/modules/`)
+
+Features organizadas por dominio:
+
+```text
+infrastructure/modules/[entity]/
+├── [entity]-page/           # Lista/CRUD principal
+│   ├── [entity]-page.tsx
+│   ├── [entity]-page.hook.ts
+│   ├── [entity]-page.scss
+│   └── index.ts
+├── [entity]-detail/         # Vista de detalle
+├── [entity]-form/           # Formulario create/edit
+├── [entity]-[subfeature]/   # Sub-features específicas
+├── [entity].routes.tsx      # Configuración de rutas
+├── [entity].constants.ts    # Constantes del módulo
+└── index.ts
+```
+
+**Estructura de cada feature page**:
+
+- `.tsx` → Componente React (presentación)
+- `.hook.ts` → Custom hook (lógica)
+- `.scss` → Estilos aislados
+- `index.ts` → Barrel export
+
+#### 2.3 Otras Carpetas
+
+```text
+infrastructure/
+├── hooks/        # Custom hooks compartidos
+├── routes/       # Configuración de routing
+├── config/       # Configuración de entorno
+└── assets/       # Recursos estáticos
+```
+
+---
+
+## Patrones Aplicados
+
+### 1. 🏛️ Clean Architecture / Hexagonal Architecture
+
+- Dominio completamente desacoplado de infraestructura
+- Repository pattern con interfaces
+- Inversión de dependencias (DIP)
+- Núcleo agnóstico de frameworks
+
+### 2. 📦 Vertical Slicing
+
+- Cada dominio está completamente aislado
+- Organización por feature, no por tipo técnico
+- Alta cohesión, bajo acoplamiento
+
+### 3. 🗄️ Repository Pattern
+
+- **Interfaces** en `application/domain/[entity]/[entity].repository.interface.ts`
+- **Implementaciones** en `application/domain/[entity]/[entity].repository.[type].ts`
+- Separación clara entre contrato e implementación
+- Facilita testing y cambio de persistencia
+
+### 4. 🛠️ Service Layer
+
+- `EntityService` base genérico en `application/core/entity/`
+- Servicios específicos por dominio heredan del base
+- Lógica de negocio centralizada
+- Reutilización mediante herencia
+
+### 5. 🔌 Provider Pattern (Dos Niveles)
+
+#### Nivel 1: Domain Provider (Application Layer)
+
+- `application/domain/[entity]/[entity].provider.ts`
+- Factory/Provider pattern genérico (sin React)
+- Instancia servicios con dependencias inyectadas
+- Solo TypeScript puro
+- **NO importa nada de Infrastructure**
+
+#### Nivel 2: Zustand Store (Infrastructure Layer)
+
+- `infrastructure/store/[entity]-store.ts`
+- Zustand store para gestión de estado global
+- Importa y usa el Provider/Service del dominio (Application)
+- Conecta el dominio (Application) con la UI (Infrastructure)
+- Usa Zustand en lugar de React Context API
+
+### 6. 🪝 Custom Hooks Pattern
+
+- Lógica separada en `[feature].hook.ts`
+- Componentes `.tsx` solo para presentación
+- Separación de responsabilidades UI/lógica
+
+### 7. 📤 Barrel Exports
+
+- Todos los módulos usan `index.ts` para exports centralizados
+- Simplifica imports
+- Oculta estructura interna
+
+### 8. 🗄️ Zustand para Estado Global
+
+- Zustand es la solución obligatoria para estado global en Infrastructure
+- **Prohibido** usar React Context API para estado compartido
+- Los stores de Zustand viven en `infrastructure/store/`
+- Los stores importan y usan servicios/providers de Application
+- Patrón: Store → Provider → Service → Repository
+
+**Ventajas de Zustand sobre Context**:
+
+- Sin providers anidados
+- Mejor rendimiento (evita re-renders innecesarios)
+- API más limpia y directa
+- Menos boilerplate
+- TypeScript nativo
+
+---
+
+## Flujo de Dependencias
+
+```text
+UI Components (infrastructure/modules)
+    ↓ usa
+Zustand Stores (infrastructure/store)
+    ↓ importa y usa
+Providers/Services (application/domain/[entity])
+    ↓ usa
+Repositories (application/domain/[entity])
+    ↓ usa
+Models & Interfaces (application/domain/[entity])
+    ↓ extiende
+Core Abstractions (application/core)
+```
+
+**Reglas de oro**:
+
+1. Las dependencias siempre apuntan hacia adentro
+2. `infrastructure` puede depender de `application` ✅
+3. `application` **NUNCA** depende de `infrastructure` ❌
+4. Zustand stores (Infrastructure) importan de Application, no al revés
+
+### Diagrama de Flujo Completo con Zustand
+
+```text
+┌─────────────────────────────────────────────┐
+│         INFRASTRUCTURE LAYER                │
+│                                             │
+│  ┌──────────────┐         ┌──────────────┐ │
+│  │  Component   │ ───────>│ Zustand Store│ │
+│  │   (.tsx)     │ usa     │ (use*Store)  │ │
+│  └──────────────┘         └──────┬────────┘ │
+│                                  │          │
+│                                  │ importa  │
+└──────────────────────────────────┼──────────┘
+                                   │
+                                   ▼
+┌──────────────────────────────────┼──────────┐
+│         APPLICATION LAYER        │          │
+│                                  │          │
+│  ┌──────────────┐         ┌──────▼───────┐ │
+│  │  Repository  │ <───────│   Provider   │ │
+│  │  Interface   │ inyecta │   (Factory)  │ │
+│  └──────▲───────┘         └──────┬───────┘ │
+│         │                        │          │
+│         │ usa              crea  │          │
+│         │                        ▼          │
+│  ┌──────┴───────┐         ┌──────────────┐ │
+│  │ Repository   │         │   Service    │ │
+│  │ Memory/API   │         │   (Logic)    │ │
+│  └──────────────┘         └──────────────┘ │
+│                                             │
+└─────────────────────────────────────────────┘
+
+FLUJO DE DATOS:
+1. Component usa Zustand store (useClientStore)
+2. Store importa Provider/Service de Application
+3. Store delega lógica al Service
+4. Service usa Repository (a través de interface)
+5. Repository maneja persistencia
+
+❌ NUNCA: Application importa de Infrastructure
+✅ SIEMPRE: Infrastructure importa de Application
+```
+
+---
+
+## Convenciones de Nomenclatura
+
+### Regla Universal: kebab-case Obligatorio
+
+**TODOS** los nombres de archivos y carpetas deben usar exclusivamente `kebab-case` (minúsculas separadas por guiones).
+
+### Archivos y Directorios
+
+- **Formato**: `kebab-case` obligatorio para TODOS los archivos y carpetas
+- **Sufijos descriptivos**: `.model.ts`, `.service.ts`, `.hook.ts`, `.provider.ts`, `.repository.interface.ts`
+- **Consistencia**: Mismo patrón entre todos los dominios
+- **Sin excepciones**: No se permite `PascalCase`, `camelCase`, ni `snake_case` en nombres de archivos o carpetas
+
+### Ejemplos de Archivos
+
+```text
+✅ CORRECTO:
+- client.model.ts
+- client.service.ts
+- client-page.hook.ts
+- client.repository.interface.ts
+- user-profile-form.tsx
+- product-list-item.scss
+
+❌ INCORRECTO:
+- ClientModel.ts (PascalCase)
+- client_service.ts (snake_case)
+- clientPageHook.ts (camelCase)
+- UserProfileForm.tsx (PascalCase)
+- productListItem.scss (camelCase)
+```
+
+### Ejemplos de Carpetas
+
+```text
+✅ CORRECTO:
+- /user-context/
+- /product-catalog/
+- /shopping-cart/
+- /payment-gateway/
+- /order-history/
+
+❌ INCORRECTO:
+- /UserContext/ (PascalCase)
+- /productCatalog/ (camelCase)
+- /shopping_cart/ (snake_case)
+- /PaymentGateway/ (PascalCase)
+```
+
+---
+
+## Reglas de Creación de Nuevos Dominios
+
+### Checklist Obligatorio
+
+Antes de crear un nuevo dominio, DEBES:
+
+- [ ] Crear estructura completa en `application/domain/[entity]/`
+- [ ] Definir modelo e interfaces (`[entity].model.ts`)
+- [ ] Crear interfaz de repositorio (`[entity].repository.interface.ts`)
+- [ ] Implementar repositorio (mínimo memory: `[entity].repository.memory.ts`)
+- [ ] Crear servicio que extienda `EntityService` (`[entity].service.ts`)
+- [ ] Implementar provider React (`[entity].provider.ts`)
+- [ ] Agregar datos mock si aplica (`[entity].mock.data.ts`)
+- [ ] Crear excepciones específicas si aplica (`[entity].exceptions.ts`)
+- [ ] Crear `index.ts` con barrel exports
+- [ ] Crear módulo en `infrastructure/modules/[entity]/`
+- [ ] Implementar al menos `[entity]-page` con `.tsx`, `.hook.ts`, `.scss`
+- [ ] Configurar rutas en `[entity].routes.tsx`
+- [ ] Agregar constantes en `[entity].constants.ts`
+
+### Estructura Mínima Requerida
+
+```text
+application/domain/[entity]/
+├── [entity].model.ts
+├── [entity].service.ts
+├── [entity].repository.interface.ts
+├── [entity].repository.memory.ts
+├── [entity].provider.ts
+└── index.ts
+
+infrastructure/modules/[entity]/
+├── [entity]-page/
+│   ├── [entity]-page.tsx
+│   ├── [entity]-page.hook.ts
+│   ├── [entity]-page.scss
+│   └── index.ts
+├── [entity].routes.tsx
+└── index.ts
+```
+
+---
+
+## Reglas de Modificación
+
+### 1. 🚫 No Romper Separación de Capas
+
+- **Prohibido**: Importar desde `infrastructure/` hacia `application/`
+- **Prohibido**: Lógica de negocio en componentes UI
+- **Prohibido**: Acceso directo a repositorios desde hooks/componentes (usar servicios)
+
+### 2. 📐 Mantener Consistencia
+
+- Todos los dominios deben seguir la misma estructura
+- No crear variaciones sin justificación explícita
+- Respetar sufijos y nomenclatura establecida
+
+### 3. 🔒 Encapsulación
+
+- Exports solo a través de `index.ts`
+- No exponer implementaciones internas
+- Usar interfaces para contratos públicos
+
+### 4. 🧪 Testabilidad
+
+- Separar lógica de presentación
+- Usar interfaces para facilitar mocks
+- Mantener servicios puros cuando sea posible
+
+---
+
+## Principios SOLID Aplicados
+
+### Single Responsibility Principle (SRP)
+
+- Cada archivo tiene una única responsabilidad
+- Servicios manejan lógica de negocio
+- Repositorios manejan persistencia
+- Componentes manejan UI
+- Hooks manejan state/effects
+
+### Open/Closed Principle (OCP)
+
+- `EntityService` base extensible
+- Interfaces permiten múltiples implementaciones
+- Nuevos dominios no modifican código existente
+
+### Liskov Substitution Principle (LSP)
+
+- Implementaciones de repositorio son intercambiables
+- Servicios hijos pueden reemplazar a `EntityService`
+
+### Interface Segregation Principle (ISP)
+
+- Interfaces específicas por dominio
+- No interfaces monolíticas
+
+### Dependency Inversion Principle (DIP)
+
+- Dependencias apuntan a abstracciones (interfaces)
+- Servicios dependen de interfaces de repositorio
+- UI depende de servicios, no de repositorios
+
+---
+
+## Validación de Cumplimiento
+
+### Antes de Crear Código
+
+- [ ] ¿Identifiqué correctamente la capa (application vs infrastructure)?
+- [ ] ¿Estoy siguiendo el patrón de estructura del dominio?
+- [ ] ¿Mis dependencias apuntan hacia adentro?
+- [ ] ¿Estoy usando nomenclatura kebab-case para TODOS los archivos y carpetas?
+- [ ] ¿Verifiqué que NO hay PascalCase, camelCase ni snake_case en nombres de archivos o carpetas?
+- [ ] ¿Creé barrel exports donde corresponde?
+
+### Después de Crear Código
+
+- [ ] ¿El código está en la capa correcta?
+- [ ] ¿La estructura coincide con dominios existentes?
+- [ ] ¿No hay imports cruzados prohibidos?
+- [ ] ¿Los archivos tienen sufijos correctos?
+- [ ] ¿TODOS los archivos y carpetas usan kebab-case exclusivamente?
+- [ ] ¿Existe `index.ts` para exports?
+
+---
+
+## Errores Comunes y Malinterpretaciones Prohibidas
+
+### 🚨 Regla de Estructura Estricta
+
+**La estructura mostrada es EXACTA y NO admite variaciones**. No se permiten:
+
+#### ❌ Carpetas Intermedias No Solicitadas
+
+```text
+// ❌ PROHIBIDO: Agregar niveles adicionales
+application/domain/[entity]/models/         → NO, debe ser plano
+application/domain/[entity]/services/       → NO, debe ser plano
+application/domain/[entity]/repositories/   → NO, debe ser plano
+
+// ✅ CORRECTO: Estructura plana
+application/domain/[entity]/
+├── [entity].model.ts
+├── [entity].service.ts
+└── [entity].repository.interface.ts
+```
+
+#### ❌ Variaciones de Nombres de Archivos
+
+```text
+// ❌ PROHIBIDO: Variaciones en sufijos
+- client.repository.ts              → Falta .interface antes de .ts
+- client-repository.interface.ts    → NO usar guión antes de repository
+- client.repo.interface.ts          → NO abreviar repository
+- client.interface.repository.ts    → Orden incorrecto
+
+// ✅ CORRECTO: Sufijos exactos
+- client.repository.interface.ts    → ÚNICO formato permitido
+- client.repository.memory.ts       → ÚNICO formato para implementaciones
+```
+
+#### ❌ Archivos Fuera de Lugar
+
+```text
+// ❌ PROHIBIDO: Ubicaciones incorrectas
+infrastructure/modules/[entity]/[entity].service.ts    → Servicios van en application/
+infrastructure/modules/[entity]/[entity].provider.ts   → Providers van en application/
+application/domain/[entity]/[entity]-page.tsx          → Componentes van en infrastructure/
+application/domain/[entity]/[entity].routes.tsx        → Rutas van en infrastructure/
+
+// ✅ CORRECTO: Ubicaciones apropiadas
+application/domain/[entity]/[entity].service.ts
+application/domain/[entity]/[entity].provider.ts
+infrastructure/modules/[entity]/[entity]-page/[entity]-page.tsx
+infrastructure/modules/[entity]/[entity].routes.tsx
+```
+
+#### ❌ Combinar Archivos que Deben Estar Separados
+
+```text
+// ❌ PROHIBIDO: Un solo archivo para múltiples responsabilidades
+- client-page.tsx con hook integrado → SEPARAR en .tsx + .hook.ts
+- client.service.ts con repositorio → SEPARAR en .service.ts + .repository.interface.ts
+- index.ts con lógica → Solo debe reexportar
+
+// ✅ CORRECTO: Archivos separados por responsabilidad
+infrastructure/modules/client/client-page/
+├── client-page.tsx        → Solo presentación
+├── client-page.hook.ts    → Solo lógica
+├── client-page.scss       → Solo estilos
+└── index.ts               → Solo exports
+```
+
+#### ❌ Inconsistencias en Nombres de Features
+
+```text
+// ❌ PROHIBIDO: Nombres inconsistentes entre carpetas
+infrastructure/modules/client/
+├── client-list/           → Debe ser client-page
+├── clientForm/            → Debe ser client-form (kebab-case)
+├── detail/                → Debe ser client-detail (incluir entity)
+└── ClientRoutes.tsx       → Debe ser client.routes.tsx
+
+// ✅ CORRECTO: Nomenclatura consistente
+infrastructure/modules/client/
+├── client-page/           → [entity]-page
+├── client-form/           → [entity]-form
+├── client-detail/         → [entity]-detail
+└── client.routes.tsx      → [entity].routes.tsx
+```
+
+#### ❌ Estructura Incompleta de Features
+
+```text
+// ❌ PROHIBIDO: Feature sin archivos obligatorios
+infrastructure/modules/client/client-page/
+├── client-page.tsx        → Falta .hook.ts
+└── index.ts               → Falta .scss
+
+// ❌ PROHIBIDO: Feature sin barrel export
+infrastructure/modules/client/client-page/
+├── client-page.tsx
+├── client-page.hook.ts
+└── client-page.scss       → Falta index.ts
+
+// ✅ CORRECTO: Feature completa
+infrastructure/modules/client/client-page/
+├── client-page.tsx
+├── client-page.hook.ts
+├── client-page.scss
+└── index.ts
+```
+
+#### ❌ Omitir Archivos Obligatorios del Dominio
+
+```text
+// ❌ PROHIBIDO: Dominio sin estructura mínima
+application/domain/client/
+├── client.model.ts
+└── client.service.ts      → Faltan repository interface, provider, index.ts
+
+// ✅ CORRECTO: Estructura mínima completa
+application/domain/client/
+├── client.model.ts
+├── client.service.ts
+├── client.repository.interface.ts
+├── client.repository.memory.ts
+├── client.provider.ts
+└── index.ts
+```
+
+#### ❌ Barrel Exports Incorrectos
+
+```text
+// ❌ PROHIBIDO: index.ts con lógica
+export const helper = () => { /* ... */ };
+export * from './client.model';
+
+// ❌ PROHIBIDO: Exports selectivos
+export { Client } from './client.model';
+export { ClientService } from './client.service';
+
+// ❌ PROHIBIDO: Default exports
+export { default } from './client.service';
+
+// ✅ CORRECTO: Solo reexportaciones con *
+export * from './client.model';
+export * from './client.service';
+export * from './client.repository.interface';
+export * from './client.provider';
+```
+
+#### ❌ Mezclar Estilos de Organización
+
+```text
+// ❌ PROHIBIDO: Algunos módulos con estructura, otros sin ella
+infrastructure/modules/
+├── client/
+│   ├── client-page/       → Estructura correcta
+│   └── client-form/       → Estructura correcta
+└── product/
+    ├── ProductList.tsx    → Inconsistente: sin carpeta, PascalCase
+    └── form.tsx           → Inconsistente: sin prefijo entity
+
+// ✅ CORRECTO: Todos los módulos con la misma estructura
+infrastructure/modules/
+├── client/
+│   ├── client-page/
+│   ├── client-form/
+│   └── client-detail/
+└── product/
+    ├── product-page/
+    ├── product-form/
+    └── product-detail/
+```
+
+---
+
+## Anti-Patrones Prohibidos
+
+### ❌ No Hacer
+
+- Importar de `infrastructure/` en `application/` (violación crítica)
+- Lógica de negocio en componentes `.tsx`
+- Acceso directo a repositorios desde UI
+- Mezclar capas en un mismo archivo
+- Crear estructuras inconsistentes entre dominios
+- Omitir interfaces de repositorio
+- Servicios sin extender de `EntityService`
+- Módulos sin estructura completa (tsx + hook + scss)
+- **Usar nombres de archivos o carpetas que NO sean kebab-case**
+- Usar `PascalCase`, `camelCase` o `snake_case` en nombres de archivos o carpetas
+- **Usar React Context API en lugar de Zustand en `infrastructure/store/`**
+- **Importar React o frameworks en `application/`**
+
+### ❌ Imports y Exports: Reglas Estrictas
+
+#### ❌ Imports Prohibidos en Application Layer (CRÍTICO)
+
+**La capa `application/` NUNCA debe importar**:
+
+```typescript
+// ❌ PROHIBIDO: Imports de React o frameworks
+import React from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { NextPage } from 'next';
+import { useRouter } from 'next/router';
+
+// ❌ PROHIBIDO: Imports de Infrastructure
+import { Button } from '@/infrastructure/components/ui/button';
+import { useTheme } from '@/infrastructure/store/theme-store';
+import { ClientPage } from '@/infrastructure/modules/client';
+
+// ❌ PROHIBIDO: Imports de librerías de UI
+import { Card } from 'antd';
+import { Button } from '@shadcn/ui';
+```
+
+**Solo puede importar**:
+
+```typescript
+// ✅ CORRECTO: TypeScript/JavaScript puro
+import { v4 as uuidv4 } from 'uuid';
+import { format } from 'date-fns';
+import _ from 'lodash';
+
+// ✅ CORRECTO: Otros dominios de Application
+import { User } from '@/application/domain/user';
+import { ProductService } from '@/application/domain/product';
+
+// ✅ CORRECTO: Core abstractions
+import { EntityService } from '@/application/core/entity';
+```
+
+**Regla de oro**: Si un archivo en `application/` necesita importar algo de `react` o `infrastructure/`, está en la capa incorrecta.
+
+#### ❌ Imports Prohibidos (Generales)
+
+```typescript
+// ❌ PROHIBIDO: Application importando de Infrastructure (VIOLACIÓN CRÍTICA)
+// Archivo: application/domain/client/client.service.ts
+import { ClientPage } from '@/infrastructure/modules/client';
+import { useClientStore } from '@/infrastructure/store/client-store';
+import { Button } from '@/infrastructure/components/ui/button';
+
+// ❌ PROHIBIDO: Imports directos saltándose el barrel export
+import { Client } from '@/application/domain/client/client.model';
+import { ClientService } from '@/application/domain/client/client.service';
+
+// ❌ PROHIBIDO: Componentes importando repositorios directamente
+// Archivo: infrastructure/modules/client/client-page/client-page.hook.ts
+import { ClientRepository } from '@/application/domain/client/client.repository.memory';
+
+// ❌ PROHIBIDO: Usar Context API en lugar de Zustand
+// Archivo: infrastructure/store/client-store.ts
+import { createContext, useContext } from 'react'; // ❌ Usar Zustand en su lugar
+```
+
+#### ✅ Imports Correctos
+
+```typescript
+// ✅ CORRECTO: Usar barrel exports
+import { Client, ClientService, ClientProvider } from '@/application/domain/client';
+
+// ✅ CORRECTO: Infrastructure puede importar de Application
+// Archivo: infrastructure/store/client-store.ts
+import { create } from 'zustand';
+import { ClientService, ClientProvider } from '@/application/domain/client';
+
+// ✅ CORRECTO: Componentes usan Zustand stores
+// Archivo: infrastructure/modules/client/client-page/client-page.hook.ts
+import { useClientStore } from '@/infrastructure/store/client-store';
+
+// ✅ CORRECTO: Stores delegan lógica a servicios del dominio
+export const useClientStore = create((set) => {
+  const clientService = ClientProvider.getInstance();
+  return {
+    clients: [],
+    loadClients: async () => {
+      const data = await clientService.getAll(); // Delega al dominio
+      set({ clients: data });
+    }
+  };
+});
+```
+
+#### ❌ Exports Prohibidos en index.ts
+
+```typescript
+// ❌ PROHIBIDO: Default exports
+export default ClientService;
+
+// ❌ PROHIBIDO: Exports selectivos
+export { Client } from './client.model';
+export { ClientService } from './client.service';
+
+// ❌ PROHIBIDO: Lógica en index.ts
+export const createClient = () => { /* ... */ };
+export * from './client.model';
+
+// ❌ PROHIBIDO: Re-exports con renombre
+export { Client as ClientModel } from './client.model';
+```
+
+#### ✅ Exports Correctos en index.ts
+
+```typescript
+// ✅ CORRECTO: Solo wildcard exports
+export * from './client.model';
+export * from './client.service';
+export * from './client.repository.interface';
+export * from './client.repository.memory';
+export * from './client.provider';
+```
+
+---
+
+### ❌ Ejemplos Prohibidos
+
+#### Nomenclatura Incorrecta
+
+```text
+// ❌ Archivos con nomenclatura incorrecta
+- ClientService.ts          → debe ser: client.service.ts
+- userRepository.ts          → debe ser: user.repository.interface.ts
+- Product_Model.ts           → debe ser: product.model.ts
+- OrderHistoryPage.tsx       → debe ser: order-history-page.tsx
+
+// ❌ Carpetas con nomenclatura incorrecta
+- /UserProfile/              → debe ser: /user-profile/
+- /shoppingCart/             → debe ser: /shopping-cart/
+- /payment_gateway/          → debe ser: /payment-gateway/
+- /ProductCatalog/           → debe ser: /product-catalog/
+```
+
+#### Violaciones de Arquitectura
+
+```typescript
+// ❌ Componente con lógica de negocio
+export const ClientPage = () => {
+  const [clients, setClients] = useState([]);
+
+  useEffect(() => {
+    // Lógica compleja aquí - PROHIBIDO
+    const filtered = clients.filter(/* ... */);
+    // ...
+  }, [clients]);
+};
+
+// ❌ Import de infrastructure en application
+// application/domain/client/client.service.ts
+import { ClientPage } from '@/infrastructure/modules/client'; // ❌
+
+// ❌ Acceso directo a repositorio desde hook
+export const useClientPage = () => {
+  const repository = useClientRepository(); // ❌ usar servicio
+};
+```
+
+---
+
+## Decisiones de Diseño No Negociables
+
+### 🔒 Estas reglas NO admiten interpretación ni variaciones
+
+#### 1. Estructura de Carpetas es EXACTA
+
+- **NO** agregar subcarpetas dentro de `application/domain/[entity]/`
+- **NO** crear carpetas como `/models/`, `/services/`, `/repositories/` dentro del dominio
+- **NO** reorganizar archivos "para mejor organización"
+- Todos los archivos del dominio van en el nivel raíz de la carpeta del entity
+
+#### 2. Nombres de Archivos Son LITERALES
+
+- **NO** existe "flexibilidad creativa" en nombres
+- **NO** usar abreviaciones: `repo` en lugar de `repository`
+- **NO** cambiar orden de sufijos: `.interface.repository` está mal, solo `.repository.interface`
+- **NO** omitir partes del nombre: `client.repository.ts` sin `.interface` está incompleto
+
+#### 3. Separación de Archivos es OBLIGATORIA
+
+- **NO** combinar hook + componente en un solo archivo
+- **NO** combinar service + repository en un solo archivo
+- **NO** incluir múltiples features en un solo componente
+- Cada responsabilidad = un archivo separado
+
+#### 4. kebab-case es UNIVERSAL y SIN EXCEPCIONES
+
+- **NO** existe "caso especial" para usar PascalCase
+- **NO** "componentes React deben ser PascalCase" - el archivo es kebab-case, la export es PascalCase
+- **NO** mezclar estilos en el mismo proyecto
+- **NO** usar snake_case ni camelCase nunca
+
+#### 5. Ubicación de Archivos NO es Negociable
+
+- **Services, Repositories, Providers**: SOLO en `application/domain/[entity]/`
+- **Componentes, Hooks de Features, Rutas**: SOLO en `infrastructure/modules/[entity]/`
+- **NO** "decidir por conveniencia" dónde poner un archivo
+- **NO** crear carpetas shared/common dentro de infrastructure para servicios
+
+#### 6. Feature Completa = .tsx + .hook.ts + .scss + index.ts
+
+- **NO** omitir `.hook.ts` "porque es simple"
+- **NO** omitir `.scss` "porque uso Tailwind"
+- **NO** omitir `index.ts` "porque solo hay un export"
+- La estructura es COMPLETA o no está completa
+
+#### 7. Dominio Completo = 6 Archivos Mínimo
+
+```text
+[entity].model.ts
+[entity].service.ts
+[entity].repository.interface.ts
+[entity].repository.memory.ts
+[entity].provider.ts
+index.ts
+```
+
+- **NO** crear dominio sin estos 6 archivos
+- **NO** "empezar con lo básico y agregar después"
+- **NO** saltarse el repository o el provider
+
+#### 8. Consistencia es Ley
+
+- **NO** tener diferentes estructuras entre módulos
+- **NO** "este módulo es especial" como justificación
+- **NO** mezclar patrones antiguos y nuevos
+- TODOS los módulos siguen el MISMO patrón exacto
+
+---
+
+## Checklist de Validación Estricta
+
+### ✅ Antes de Considerar el Código Completo
+
+#### Para Dominios (`application/domain/[entity]/`)
+
+- [ ] Carpeta con nombre en kebab-case: `/user-context/` no `/UserContext/`
+- [ ] Estructura plana (sin subcarpetas)
+- [ ] Existe `[entity].model.ts` con nombre exacto
+- [ ] Existe `[entity].service.ts` con nombre exacto
+- [ ] Existe `[entity].repository.interface.ts` con nombre exacto (incluye `.interface`)
+- [ ] Existe `[entity].repository.memory.ts` con nombre exacto
+- [ ] Existe `[entity].provider.ts` con nombre exacto
+- [ ] Existe `index.ts` que solo reexporta con `export *`
+- [ ] NO hay carpetas `/models/`, `/services/`, `/repositories/`
+- [ ] NO hay archivos con PascalCase, camelCase o snake_case
+- [ ] **NO hay imports de React** en ningún archivo
+- [ ] **NO hay imports de frameworks UI** (Next.js, antd, shadcn)
+- [ ] **NO hay imports de `infrastructure/`** en ningún archivo
+- [ ] **`[entity].provider.ts` NO usa Context API de React**
+- [ ] **`[entity].provider.ts` es un Factory/Provider genérico** (TypeScript puro)
+
+#### Para Features (`infrastructure/modules/[entity]/[entity]-[feature]/`)
+
+- [ ] Carpeta con nombre en kebab-case: `/user-profile/` no `/UserProfile/`
+- [ ] Nombre incluye el entity: `/client-page/` no `/page/`
+- [ ] Existe `[entity]-[feature].tsx` con nombre exacto
+- [ ] Existe `[entity]-[feature].hook.ts` con nombre exacto (incluye `.hook`)
+- [ ] Existe `[entity]-[feature].scss` con nombre exacto
+- [ ] Existe `index.ts` que solo reexporta
+- [ ] NO hay lógica en el `.tsx`, solo presentación
+- [ ] NO hay llamadas a repositorios desde el `.hook.ts`
+- [ ] El `.hook.ts` usa servicios, no repositorios directamente
+
+#### Para Módulos Completos (`infrastructure/modules/[entity]/`)
+
+- [ ] Carpeta raíz del módulo en kebab-case
+- [ ] Existe al menos una feature completa (`[entity]-page/`)
+- [ ] Existe `[entity].routes.tsx` en la raíz del módulo
+- [ ] Existe `index.ts` en la raíz del módulo
+- [ ] Todas las features siguen la misma estructura
+- [ ] NO hay archivos `.tsx` sueltos sin carpeta
+- [ ] NO hay features con nombres inconsistentes
+
+### ❌ Señales de Alerta Inmediata
+
+Si encuentras CUALQUIERA de estos, la estructura está INCORRECTA:
+
+- [ ] Un archivo con nombre en PascalCase
+- [ ] Una carpeta con nombre en PascalCase o camelCase o snake_case
+- [ ] Un archivo `.repository.ts` sin `.interface` o sin `.memory`
+- [ ] Un hook integrado en un archivo `.tsx`
+- [ ] Un service o repository en `infrastructure/`
+- [ ] Un componente `.tsx` en `application/`
+- [ ] Una feature sin `.hook.ts` o sin `.scss` o sin `index.ts`
+- [ ] Un dominio sin los 6 archivos mínimos
+- [ ] Un `index.ts` con lógica o exports selectivos
+- [ ] Carpetas como `/models/`, `/services/`, `/components/` dentro de un dominio
+- [ ] Diferentes estructuras entre módulos del mismo proyecto
+- [ ] **Imports de React en `application/`** (useState, useEffect, Context API, etc.)
+- [ ] **Imports de frameworks UI en `application/`** (Next.js, antd, shadcn, etc.)
+- [ ] **Imports de `infrastructure/` en `application/`** (violación crítica del flujo de dependencias)
+- [ ] **React Context Provider en `application/domain/[entity]/[entity].provider.ts`**
+- [ ] **Uso de React Context API en lugar de Zustand en `infrastructure/store/`**
+
+---
+
+## Mantra
+
+"Capas claras, dependencias hacia adentro, dominios consistentes, lógica separada de UI. **Application NO importa React ni frameworks ni Infrastructure. Infrastructure conecta dominio con UI usando Zustand.** Clean Architecture no es opcional, es obligatoria."
+
+---
+
+## Proceso de Pensamiento para Evitar Errores
+
+### 🧠 Antes de Crear CUALQUIER Archivo
+
+**Pregunta 1: ¿Es un archivo de dominio o infraestructura?**
+
+```text
+¿Contiene lógica de negocio pura?
+  → SÍ: va en application/domain/[entity]/
+  → NO: continúa a la siguiente pregunta
+
+¿Es un componente UI, hook de feature, ruta o módulo?
+  → SÍ: va en infrastructure/modules/[entity]/
+  → NO: verificar si es hook compartido, store, o utils
+```
+
+**Pregunta 2: ¿Qué tipo de archivo es?**
+
+```text
+Para Application:
+  - Modelo/Interfaz → [entity].model.ts
+  - Servicio → [entity].service.ts
+  - Repositorio Interface → [entity].repository.interface.ts
+  - Repositorio Implementación → [entity].repository.[tipo].ts
+  - Provider/Factory (sin React) → [entity].provider.ts
+  - Excepciones → [entity].exceptions.ts
+  - Mock Data → [entity].mock.data.ts
+  - Barrel Export → index.ts
+
+Para Infrastructure Modules:
+  - Componente → [entity]-[feature]/[entity]-[feature].tsx
+  - Hook → [entity]-[feature]/[entity]-[feature].hook.ts
+  - Estilos → [entity]-[feature]/[entity]-[feature].scss
+  - Barrel Export → [entity]-[feature]/index.ts
+  - Rutas → [entity].routes.tsx
+  - Constantes → [entity].constants.ts
+```
+
+**Pregunta 3: ¿El nombre del archivo es correcto?**
+
+```text
+✅ Checklist rápido:
+  - ¿Está en kebab-case? (todo minúsculas con guiones)
+  - ¿Incluye el nombre del entity?
+  - ¿Tiene el sufijo correcto? (.model, .service, .hook, etc.)
+  - ¿El sufijo está en el orden correcto? (.repository.interface no .interface.repository)
+  - ¿No tiene abreviaciones? (repository, no repo)
+```
+
+**Pregunta 4: ¿La estructura del contenido es correcta?**
+
+```text
+Para componentes (.tsx):
+  - ¿Solo contiene JSX y presentación?
+  - ¿NO tiene lógica de negocio?
+  - ¿NO tiene llamadas directas a repositorios?
+  - ¿Usa el hook correspondiente para la lógica?
+
+Para hooks (.hook.ts):
+  - ¿Contiene toda la lógica del componente?
+  - ¿Usa servicios en lugar de repositorios?
+  - ¿NO contiene JSX?
+
+Para servicios (.service.ts):
+  - ¿Extiende de EntityService si es genérico?
+  - ¿Usa repositorios a través de interfaces?
+  - ¿NO importa nada de infrastructure?
+
+Para repositorios (.repository.interface.ts):
+  - ¿Es una interfaz/contrato?
+  - ¿NO contiene implementación?
+  - ¿Define los métodos de persistencia?
+```
+
+**Pregunta 5: ¿Está completo?**
+
+```text
+Para un dominio nuevo:
+  - [ ] 6 archivos mínimos presentes
+  - [ ] index.ts con exports correctos
+  - [ ] Sin carpetas intermedias
+  - [ ] Todos los nombres en kebab-case
+
+Para una feature nueva:
+  - [ ] 4 archivos presentes (.tsx, .hook.ts, .scss, index.ts)
+  - [ ] Carpeta con nombre correcto ([entity]-[feature])
+  - [ ] Separación clara de responsabilidades
+  - [ ] index.ts con exports correctos
+```
+
+### ⚠️ Señales de que Estás por Cometer un Error
+
+Si estás pensando alguna de estas cosas, **DETENTE**:
+
+- "Voy a crear una carpeta `/models/` dentro del dominio para organizar mejor"
+  - ❌ NO. Estructura plana obligatoria.
+
+- "Este archivo es simple, no necesita hook separado"
+  - ❌ NO. Separación obligatoria siempre.
+
+- "Voy a llamar este archivo `ClientService.ts` porque es más claro"
+  - ❌ NO. kebab-case obligatorio: `client.service.ts`
+
+- "Voy a poner el provider en infrastructure porque ahí se usa"
+  - ❌ NO. Providers van en application/domain/
+
+- "Voy a crear `client.repository.ts` sin el `.interface`"
+  - ❌ NO. Interfaces de repositorio deben tener `.repository.interface.ts`
+
+- "Este index.ts necesita una función helper"
+  - ❌ NO. index.ts solo reexporta.
+
+- "Voy a usar `export { Client }` en vez de `export *`"
+  - ❌ NO. Solo wildcard exports en index.ts
+
+- "Este módulo es especial, voy a usar otra estructura"
+  - ❌ NO. Consistencia es obligatoria.
+
+### ✅ Flujo Correcto de Creación
+
+```text
+1. Identificar tipo de código (dominio o infraestructura)
+   ↓
+2. Determinar ubicación exacta según tipo
+   ↓
+3. Verificar estructura de carpetas existente
+   ↓
+4. Nombrar archivo con kebab-case + sufijo correcto
+   ↓
+5. Crear contenido según responsabilidad única
+   ↓
+6. Verificar separación de responsabilidades
+   ↓
+7. Crear index.ts con wildcard exports
+   ↓
+8. Validar contra checklist estricta
+   ↓
+9. Verificar consistencia con otros módulos/dominios
+   ↓
+10. Confirmar que NO se violó ninguna regla
+```
+
+---
+
+## Integración con Otras Reglas
+
+- **DRY**: `EntityService` base evita duplicación
+- **SOLID**: Aplicado en toda la arquitectura
+- **YAGNI**: Crear solo estructura necesaria por dominio
+- **KISS**: Mantener simplicidad en cada capa
+- **TDD**: Arquitectura facilita testing por separación de capas
+
+---
+
+## Ejemplos Prácticos: Provider Pattern Correcto
+
+### ✅ CORRECTO: Provider en Application Layer (Sin React)
+
+```typescript
+// application/domain/user/user.provider.ts
+import { UserService } from './user.service';
+import { UserRepositoryMemory } from './user.repository.memory';
+
+/**
+ * Factory/Provider genérico (sin React)
+ * Solo instancia y configura dependencias
+ */
+export class UserProvider {
+  private static instance: UserService | null = null;
+
+  static getInstance(): UserService {
+    if (!this.instance) {
+      const repository = new UserRepositoryMemory();
+      this.instance = new UserService(repository);
+    }
+    return this.instance;
+  }
+
+  static createNew(): UserService {
+    const repository = new UserRepositoryMemory();
+    return new UserService(repository);
+  }
+}
+
+// O alternativamente, función factory simple:
+export const createUserService = (): UserService => {
+  const repository = new UserRepositoryMemory();
+  return new UserService(repository);
+};
+```
+
+**Características**:
+
+- ✅ Solo TypeScript puro
+- ✅ No importa React
+- ✅ Patrón Factory/Singleton
+- ✅ Inyección de dependencias
+
+### ✅ CORRECTO: Zustand Store en Infrastructure Layer
+
+```typescript
+// infrastructure/store/user-store.ts
+import { create } from 'zustand';
+import { UserService } from '@/application/domain/user';
+import { UserProvider } from '@/application/domain/user';
+import type { User } from '@/application/domain/user';
+
+interface UserState {
+  // Estado
+  currentUser: User | null;
+  isLoading: boolean;
+
+  // Acciones
+  loadUser: (id: string) => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
+  clearUser: () => void;
+}
+
+/**
+ * Zustand Store (solo en Infrastructure)
+ * Conecta el dominio con la UI
+ */
+export const useUserStore = create<UserState>((set) => {
+  // Obtiene el servicio del dominio (Application)
+  const userService = UserProvider.getInstance();
+
+  return {
+    // Estado inicial
+    currentUser: null,
+    isLoading: false,
+
+    // Acciones que usan el servicio del dominio
+    loadUser: async (id: string) => {
+      set({ isLoading: true });
+      try {
+        const user = await userService.getById(id);
+        set({ currentUser: user, isLoading: false });
+      } catch (error) {
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    updateUser: async (user: User) => {
+      set({ isLoading: true });
+      try {
+        await userService.update(user);
+        set({ currentUser: user, isLoading: false });
+      } catch (error) {
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    clearUser: () => set({ currentUser: null }),
+  };
+});
+```
+
+**Características**:
+
+- ✅ Usa Zustand (permitido en Infrastructure)
+- ✅ Importa el Provider/Service del dominio (Application → Infrastructure ✓)
+- ✅ No contiene lógica de negocio (delega al servicio)
+- ✅ Solo conecta dominio con UI
+- ✅ No usa React Context API
+
+### ❌ INCORRECTO: Importar de Infrastructure en Application
+
+```typescript
+// ❌ application/domain/user/user.provider.ts
+import React, { createContext } from 'react'; // ❌ NO importar React
+import { useUserStore } from '@/infrastructure/store/user-store'; // ❌ NO importar de Infrastructure
+
+// ❌ Esto está MAL - Context API en Application Layer
+export const UserContext = createContext<UserService | null>(null);
+
+// ❌ Esto está MAL - Usar store de Infrastructure en Application
+export class UserProvider {
+  static getInstance(): UserService {
+    const store = useUserStore(); // ❌ NO usar hooks de Infrastructure
+    return store.userService;
+  }
+}
+```
+
+**Por qué está mal**:
+
+- ❌ Importa React en Application Layer
+- ❌ Importa de `infrastructure/` en `application/` (violación crítica)
+- ❌ Mezcla lógica de dominio con UI
+- ❌ Acopla el dominio al framework
+- ❌ Usa hooks de React en lógica de dominio
+
+**Regla de oro**: `application/` NUNCA importa de `infrastructure/`. Solo `infrastructure/` puede importar de `application/`.
+
+---
+
+## Resumen Ejecutivo: 10 Reglas de Oro
+
+Para consulta rápida antes de crear o modificar código:
+
+### 1. 📁 Estructura Exacta, Sin Variaciones
+
+- Dominio: estructura plana, 6 archivos mínimos
+- Feature: 4 archivos obligatorios (.tsx, .hook.ts, .scss, index.ts)
+- NO agregar niveles de carpetas intermedias
+
+### 2. 🔤 kebab-case Obligatorio Universal
+
+- **TODOS** los archivos y carpetas en kebab-case
+- Sin excepciones, sin casos especiales
+- NO PascalCase, NO camelCase, NO snake_case
+
+### 3. 📍 Ubicación No Negociable
+
+- `application/domain/`: modelos, servicios, repositorios, providers
+- `infrastructure/modules/`: componentes, hooks, rutas, estilos
+- NUNCA al revés
+
+### 4. 🔗 Separación de Responsabilidades
+
+- Un archivo = una responsabilidad
+- NO combinar hook + componente
+- NO combinar service + repository
+
+### 5. 📝 Sufijos Exactos y Literales
+
+- `.repository.interface.ts` (NO `.repository.ts`)
+- `.repository.memory.ts` (NO `.repository.ts`)
+- `.hook.ts` (NO `.hooks.ts`)
+- NO abreviar, NO cambiar orden
+
+### 6. 🔄 Barrel Exports Estrictos
+
+- `index.ts` solo con `export *`
+- Sin lógica, sin exports selectivos
+- Sin default exports
+- Sin re-exports con renombre
+
+### 7. ↗️ Flujo de Dependencias
+
+- `infrastructure` → `application` ✅
+- `application` → `infrastructure` ❌
+- Components/Hooks → Services ✅
+- Components/Hooks → Repositories ❌
+
+### 8. 🔐 Estructura Mínima Completa
+
+- Dominio: 6 archivos obligatorios
+- Feature: 4 archivos obligatorios
+- NO omitir archivos "porque es simple"
+- TODO completo o nada
+
+### 9. 🎯 Consistencia Total
+
+- TODOS los dominios igual estructura
+- TODOS los módulos igual estructura
+- NO "este es especial"
+- NO mezclar patrones
+
+### 10. ⚠️ Si Dudas, Está Mal
+
+- NO existe "flexibilidad" en estructura
+- NO existe "interpretación" en nomenclatura
+- NO existe "caso especial" justificado
+- Reglas son EXACTAS y LITERALES
+
+---
+
+## Última Validación
+
+Antes de considerar el código terminado, responde SÍ a TODO:
+
+- [ ] ¿Todos los archivos están en kebab-case?
+- [ ] ¿La estructura es EXACTA a los ejemplos?
+- [ ] ¿NO hay carpetas intermedias no solicitadas?
+- [ ] ¿Cada feature tiene sus 4 archivos?
+- [ ] ¿Cada dominio tiene sus 6 archivos?
+- [ ] ¿Los index.ts solo usan `export *`?
+- [ ] ¿NO hay imports de infrastructure en application?
+- [ ] **¿NO hay imports de React en application/?**
+- [ ] **¿NO hay imports de frameworks UI en application/?**
+- [ ] **¿[entity].provider.ts en application/ es TypeScript puro (sin React)?**
+- [ ] **¿Se está usando Zustand en lugar de React Context en infrastructure/store/?**
+- [ ] **¿Los stores de Zustand importan de Application (no al revés)?**
+- [ ] ¿Los hooks usan servicios, no repositorios?
+- [ ] ¿Todos los módulos tienen la misma estructura?
+- [ ] ¿NO violé ninguna de las 10 reglas de oro?
+
+**Si alguna respuesta es NO, el código NO está completo.**

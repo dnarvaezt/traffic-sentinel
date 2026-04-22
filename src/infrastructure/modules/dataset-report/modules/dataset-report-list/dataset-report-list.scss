@@ -1,0 +1,56 @@
+@reference "../../../../assets/globals.scss";
+
+.dataset-report-list {
+  @apply mx-auto flex w-full max-w-6xl flex-col gap-6 p-6;
+
+  &__loading,
+  &__empty {
+    @apply py-8 text-center;
+  }
+
+  &__error-content {
+    @apply flex items-center justify-between gap-4;
+  }
+
+  &__items {
+    @apply flex flex-col;
+  }
+
+  &__item {
+    @apply flex min-w-0 flex-1 items-center gap-3;
+    @apply px-4 py-3;
+    @apply border-b border-border last:border-b-0;
+    @apply transition-colors duration-200;
+    @apply hover:bg-accent/30;
+    @apply cursor-pointer;
+
+    &-icon {
+      @apply shrink-0 text-muted-foreground;
+    }
+
+    &-info {
+      @apply min-w-0 flex-1;
+    }
+
+    &-name {
+      @apply truncate text-base font-semibold text-foreground;
+    }
+
+    &-meta {
+      @apply mt-1 flex items-center gap-3;
+      @apply text-sm text-muted-foreground;
+    }
+
+    &-rows {
+      @apply shrink-0;
+    }
+
+    &-date {
+      @apply shrink-0;
+    }
+
+    &-actions {
+      @apply flex shrink-0 items-center gap-2;
+    }
+  }
+}
