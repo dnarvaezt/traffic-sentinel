@@ -1,6 +1,15 @@
 "use client"
 
-import { ArrowLeft, BarChart3, FileSpreadsheet, List, Plus, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  BarChart3,
+  ChevronRight,
+  List,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+  X,
+} from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
@@ -8,7 +17,9 @@ import { useProjectStore } from "@/application/stores/project-store"
 import type { FilterDefinition, GroupByDefinition, MetricDefinition } from "@/application/types"
 import { ChartWidget } from "@/components/charts/chart-widget"
 import { FilterBuilder } from "@/components/filters/filter-builder"
+import { Badge } from "@/infrastructure/components/ui/badge"
 import { Button } from "@/infrastructure/components/ui/button"
+import { Input } from "@/infrastructure/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -41,6 +52,7 @@ export default function DashboardDatasetPage() {
   const [filters, setFilters] = useState<FilterDefinition[]>([])
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
   const [groupBys, setGroupBys] = useState<GroupByDefinition[]>([])
+  const [panelOpen, setPanelOpen] = useState(true)
 
   useEffect(() => {
     setMounted(true)
@@ -70,22 +82,25 @@ export default function DashboardDatasetPage() {
   }, [dataset, loadedData, filters, metrics, groupBys])
 
   const schemaColumns = projectData?.schema?.columns || []
+  const numericColumns = schemaColumns.filter((c) => c.type === "number")
+  const activeFiltersCount = filters.length + metrics.length + groupBys.length
 
   if (!mounted) return null
-  if (!projectData) return <p>Proyecto no encontrado</p>
-  if (!dataset) return <p>Dataset no encontrado</p>
+  if (!projectData) return <p className="p-8 text-muted-foreground">Proyecto no encontrado</p>
+  if (!dataset) return <p className="p-8 text-muted-foreground">Dataset no encontrado</p>
 
   function handleAddChart() {
-    const numericCols = schemaColumns.filter((c) => c.type === "number")
-    const labelCols = schemaColumns.filter((c) => c.filterable)
-    const newChart: ChartConfig = {
-      id: crypto.randomUUID(),
-      type: "bar",
-      labelColumn: labelCols[0]?.name,
-      valueColumn: numericCols[0]?.name,
-      title: `Gráfico ${charts.length + 1}`,
-    }
-    setCharts([...charts, newChart])
+    setCharts([
+      ...charts,
+      {
+        id: crypto.randomUUID(),
+        type: "bar",
+        labelColumn: schemaColumns.find((c) => c.filterable)?.name,
+        valueColumn: numericColumns[0]?.name,
+        title: `Gráfico ${charts.length + 1}`,
+      },
+    ])
+    if (!panelOpen) setPanelOpen(true)
   }
 
   function handleUpdateChart(chartId: string, updates: Partial<ChartConfig>) {
@@ -96,114 +111,137 @@ export default function DashboardDatasetPage() {
     setCharts(charts.filter((c) => c.id !== chartId))
   }
 
-  const navItems = [
-    { label: "Datos", href: `/projects/${projectId}/datasets/${datasetId}`, icon: List },
-    {
-      label: "Dashboard",
-      href: `/projects/${projectId}/dashboard/${datasetId}`,
-      icon: BarChart3,
-      active: true,
-    },
-  ]
-
   return (
-    <main className="min-h-screen flex">
-      <aside className="w-64 border-r p-4 space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push(`/projects/${projectId}`)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver al proyecto
+    <main className="h-screen flex flex-col overflow-hidden">
+      {/* ── Toolbar ── */}
+      <header className="h-12 border-b px-3 flex items-center gap-1.5 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => router.push(`/projects/${projectId}`)}
+        >
+          <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        <div className="pt-2 border-t">
-          <div className="flex items-center justify-between px-2 mb-2">
-            <h2 className="text-sm font-semibold">Dataset</h2>
-            <span className="text-xs text-muted-foreground">
-              {dataset.rowCount?.toLocaleString()} filas
-            </span>
-          </div>
-          <p className="text-sm font-medium px-2">{dataset.name}</p>
+        <div className="flex items-center gap-1 text-sm min-w-0">
+          <span className="text-muted-foreground truncate hidden sm:block max-w-[100px]">
+            {projectData.name}
+          </span>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:block" />
+          <span className="font-medium truncate max-w-[160px]">{dataset.name}</span>
         </div>
 
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Navegación</h2>
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
+        <Badge variant="outline" className="text-xs shrink-0 hidden md:flex">
+          {loadedData.length.toLocaleString()} filas
+        </Badge>
+
+        {/* Tab switcher */}
+        <nav className="flex items-center bg-muted rounded-lg p-0.5 mx-auto shrink-0">
+          <Link
+            href={`/projects/${projectId}/datasets/${datasetId}`}
+            className="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <List className="h-3.5 w-3.5" />
+            Datos
+          </Link>
+          <span className="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm bg-background text-foreground shadow-sm">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Dashboard
+          </span>
+        </nav>
+
+        {/* Actions */}
+        <div className="flex items-center gap-0.5 ml-auto">
+          <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5" onClick={handleAddChart}>
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-sm">Gráfico</span>
+          </Button>
+
+          <div className="w-px h-5 bg-border mx-1 shrink-0" />
+
+          <Button
+            variant={panelOpen ? "secondary" : "ghost"}
+            size="sm"
+            className="h-8 gap-1.5 px-2.5"
+            onClick={() => setPanelOpen(!panelOpen)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-sm">Panel</span>
+            {activeFiltersCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+        </div>
+      </header>
+
+      {/* ── Body ── */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left panel */}
+        {panelOpen && (
+          <aside className="w-72 border-r flex flex-col shrink-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 h-10 border-b shrink-0">
+              <span className="text-sm font-medium">Configuración</span>
               <Button
-                variant={item.active ? "secondary" : "ghost"}
-                className="w-full justify-start"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setPanelOpen(false)}
               >
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.label}
+                <X className="h-3.5 w-3.5" />
               </Button>
-            </Link>
-          ))}
-        </div>
-
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Otros Datasets</h2>
-          {projectData.databases
-            .filter((d) => d.id !== datasetId)
-            .map((d) => (
-              <Link key={d.id} href={`/projects/${projectId}/datasets/${d.id}`}>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  {d.name}
-                </Button>
-              </Link>
-            ))}
-        </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="border-b px-6 py-3">
-          <h1 className="text-lg font-semibold">Dashboard - {dataset.name}</h1>
-        </header>
-
-        <div className="flex-1 flex overflow-hidden">
-          <aside className="w-72 border-r p-4 overflow-y-auto space-y-6">
-            <div>
-              <h3 className="font-semibold mb-2">Filtros</h3>
-              <FilterBuilder
-                columns={schemaColumns}
-                filters={filters}
-                metrics={metrics}
-                groupBys={groupBys}
-                sorts={[]}
-                onFiltersChange={setFilters}
-                onMetricsChange={setMetrics}
-                onGroupBysChange={setGroupBys}
-                onSortsChange={() => {}}
-              />
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Gráficos</h3>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleAddChart}>
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="space-y-2">
+            <div className="flex-1 overflow-y-auto">
+              {/* Charts section */}
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    Gráficos
+                    {charts.length > 0 && (
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        ({charts.length})
+                      </span>
+                    )}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleAddChart}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                {charts.length === 0 && (
+                  <p className="text-xs text-muted-foreground py-1">
+                    Aún no hay gráficos. Usa + para agregar.
+                  </p>
+                )}
+
                 {charts.map((chart) => (
                   <div key={chart.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{chart.title}</span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={chart.title}
+                        onChange={(e) => handleUpdateChart(chart.id, { title: e.target.value })}
+                        className="h-7 text-xs flex-1"
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => handleDeleteChart(chart.id)}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
+
                     <Select
                       value={chart.type}
-                      onValueChange={(value) =>
-                        handleUpdateChart(chart.id, { type: value as "bar" | "line" | "pie" })
+                      onValueChange={(v) =>
+                        handleUpdateChart(chart.id, { type: v as ChartConfig["type"] })
                       }
                     >
-                      <SelectTrigger className="w-full h-8 text-sm">
+                      <SelectTrigger className="h-7 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -212,20 +250,81 @@ export default function DashboardDatasetPage() {
                         <SelectItem value="pie">Circular</SelectItem>
                       </SelectContent>
                     </Select>
+
+                    <Select
+                      value={chart.labelColumn || ""}
+                      onValueChange={(v) => handleUpdateChart(chart.id, { labelColumn: v })}
+                    >
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Eje X / etiqueta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {schemaColumns.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.label || c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={chart.valueColumn || ""}
+                      onValueChange={(v) => handleUpdateChart(chart.id, { valueColumn: v })}
+                    >
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Eje Y / valor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {numericColumns.length > 0 ? (
+                          numericColumns.map((c) => (
+                            <SelectItem key={c.id} value={c.name}>
+                              {c.label || c.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="_none" disabled>
+                            No hay columnas numéricas
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                 ))}
               </div>
+
+              <div className="border-t" />
+
+              {/* Filters section */}
+              <div className="p-4 space-y-3">
+                <span className="text-sm font-medium">Filtros y métricas</span>
+                <FilterBuilder
+                  columns={schemaColumns}
+                  filters={filters}
+                  metrics={metrics}
+                  groupBys={groupBys}
+                  sorts={[]}
+                  onFiltersChange={setFilters}
+                  onMetricsChange={setMetrics}
+                  onGroupBysChange={setGroupBys}
+                  onSortsChange={() => {}}
+                />
+              </div>
             </div>
           </aside>
+        )}
 
-          <div className="flex-1 overflow-auto p-4">
-            {loading ? (
-              <div className="h-full flex items-center justify-center">Cargando...</div>
-            ) : charts.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
-                {charts.map((chart) => (
-                  <div key={chart.id} className="border rounded-lg p-4">
-                    <h3 className="font-semibold mb-4">{chart.title}</h3>
+        {/* Chart canvas */}
+        <div className="flex-1 overflow-auto p-5 min-w-0">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+              Cargando...
+            </div>
+          ) : charts.length > 0 ? (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-[320px]">
+              {charts.map((chart) => (
+                <div key={chart.id} className="border rounded-xl p-4 flex flex-col overflow-hidden">
+                  <h3 className="text-sm font-semibold mb-3 shrink-0">{chart.title}</h3>
+                  <div className="flex-1 min-h-0">
                     <ChartWidget
                       data={processedData}
                       columns={schemaColumns}
@@ -234,20 +333,19 @@ export default function DashboardDatasetPage() {
                       valueColumn={chart.valueColumn}
                     />
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No hay gráficos configurados</p>
-                  <Button variant="link" size="sm" onClick={handleAddChart} className="mt-2">
-                    Agregar gráfico
-                  </Button>
                 </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
+              <BarChart3 className="w-10 h-10 opacity-25" />
+              <p className="text-sm">No hay gráficos configurados</p>
+              <Button variant="outline" size="sm" onClick={handleAddChart}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Agregar gráfico
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </main>

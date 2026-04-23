@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, BarChart3, FileSpreadsheet, List, Settings, Star, Upload } from "lucide-react"
+import { ArrowLeft, BarChart3, ChevronRight, List, SlidersHorizontal, Star } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -14,6 +14,7 @@ import type {
 } from "@/application/types"
 import { FilterBuilder } from "@/components/filters/filter-builder"
 import { DataTable } from "@/components/table/data-table"
+import { Badge } from "@/infrastructure/components/ui/badge"
 import { Button } from "@/infrastructure/components/ui/button"
 import {
   Dialog,
@@ -21,7 +22,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/infrastructure/components/ui/dialog"
 import { Input } from "@/infrastructure/components/ui/input"
 import { Label } from "@/infrastructure/components/ui/label"
@@ -44,13 +44,6 @@ export default function DatasetViewPage() {
   const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const projectData = getProject(projectId)
-  const dataset = projectData?.databases?.find((d) => d.id === datasetId)
-
   const [data, setData] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<FilterDefinition[]>([])
@@ -59,10 +52,17 @@ export default function DatasetViewPage() {
   const [groupBys, setGroupBys] = useState<GroupByDefinition[]>([])
 
   const [uploading, setUploading] = useState(false)
-
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const projectData = getProject(projectId)
+  const dataset = projectData?.databases?.find((d) => d.id === datasetId)
 
   useEffect(() => {
     if (dataset) {
@@ -93,19 +93,16 @@ export default function DatasetViewPage() {
   }, [dataset, data, filters, sorts, metrics, groupBys])
 
   const schemaColumns = projectData?.schema?.columns || []
+  const activeFiltersCount = filters.length + metrics.length + sorts.length + groupBys.length
 
   if (!mounted) return null
-  if (!projectData) return <p>Proyecto no encontrado</p>
-  if (!dataset) return <p>Dataset no encontrado</p>
+  if (!projectData) return <p className="p-8 text-muted-foreground">Proyecto no encontrado</p>
+  if (!dataset) return <p className="p-8 text-muted-foreground">Dataset no encontrado</p>
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
-    if (!file?.name.endsWith(".csv")) {
-      return
-    }
-
+    if (!file?.name.endsWith(".csv")) return
     setUploading(true)
-
     try {
       const parsed = await parseCSV(file)
       const database: DbType = {
@@ -125,7 +122,7 @@ export default function DatasetViewPage() {
     }
   }
 
-  async function handleDelete() {
+  async function _handleDelete() {
     await deleteDatabaseData(datasetId)
     deleteDatabase(projectId, datasetId)
     router.push(`/projects/${projectId}`)
@@ -142,165 +139,161 @@ export default function DatasetViewPage() {
     updateDatabase(projectId, datasetId, { favorite: !dataset.favorite })
   }
 
-  const navItems = [
-    {
-      label: "Datos",
-      href: `/projects/${projectId}/datasets/${datasetId}`,
-      icon: List,
-      active: true,
-    },
-    { label: "Dashboard", href: `/projects/${projectId}/dashboard/${datasetId}`, icon: BarChart3 },
-  ]
-
   return (
-    <main className="min-h-screen flex">
-      <aside className="w-64 border-r p-4 space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push(`/projects/${projectId}`)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver al proyecto
+    <main className="h-screen flex flex-col overflow-hidden">
+      {/* ── Toolbar ── */}
+      <header className="h-12 border-b px-3 flex items-center gap-1.5 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => router.push(`/projects/${projectId}`)}
+        >
+          <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        <div className="pt-2 border-t">
-          <div className="flex items-center justify-between px-2 mb-2">
-            <h2 className="text-sm font-semibold">Dataset</h2>
-            <button type="button" onClick={handleToggleFavorite}>
-              <Star
-                className={`h-4 w-4 ${dataset.favorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
-              />
-            </button>
-          </div>
-          <p className="text-sm font-medium px-2">{dataset.name}</p>
-          <p className="text-xs text-muted-foreground px-2">
-            {dataset.rowCount?.toLocaleString()} filas
-          </p>
-        </div>
-
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Navegación</h2>
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <Button
-                variant={item.active ? "secondary" : "ghost"}
-                className="w-full justify-start"
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.label}
-              </Button>
-            </Link>
-          ))}
-        </div>
-
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Otros Datasets</h2>
-          {projectData.databases
-            .filter((d) => d.id !== datasetId)
-            .map((d) => (
-              <Link key={d.id} href={`/projects/${projectId}/datasets/${d.id}`}>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  {d.name}
-                </Button>
-              </Link>
-            ))}
-          <label className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer">
-            <Upload className="h-4 w-4" />
-            Subir CSV
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={uploading}
+        <div className="flex items-center gap-1 text-sm min-w-0">
+          <span className="text-muted-foreground truncate hidden sm:block max-w-[100px]">
+            {projectData.name}
+          </span>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:block" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
+            <Star
+              className={`h-4 w-4 ${dataset.favorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
             />
-          </label>
+          </Button>
+          <span className="font-medium truncate max-w-[160px]">{dataset.name}</span>
         </div>
 
-        <div className="pt-2 border-t">
-          <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-start">
-                <Settings className="mr-2 h-4 w-4" />
-                Editar
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Editar Dataset</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Nombre</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Descripción</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSave}>Guardar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-destructive"
-            onClick={handleDelete}
+        <Badge variant="outline" className="text-xs shrink-0 hidden md:flex">
+          {data.length.toLocaleString()} filas
+        </Badge>
+
+        {/* Tab switcher */}
+        <nav className="flex items-center bg-muted rounded-lg p-0.5 mx-auto shrink-0">
+          <span className="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm bg-background text-foreground shadow-sm">
+            <List className="h-3.5 w-3.5" />
+            Datos
+          </span>
+          <Link
+            href={`/projects/${projectId}/dashboard/${datasetId}`}
+            className="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Eliminar
+            <BarChart3 className="h-3.5 w-3.5" />
+            Dashboard
+          </Link>
+        </nav>
+
+        {/* Actions */}
+        <div className="flex items-center gap-0.5 ml-auto">
+          <div className="w-px h-5 bg-border mx-1 shrink-0" />
+
+          <Button
+            variant={filterDialogOpen ? "secondary" : "ghost"}
+            size="sm"
+            className="h-8 gap-1.5 px-2.5"
+            onClick={() => setFilterDialogOpen(true)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-sm">Filtros</span>
+            {activeFiltersCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium">
+                {activeFiltersCount}
+              </span>
+            )}
           </Button>
         </div>
-      </aside>
+      </header>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="border-b px-6 py-3">
-          <h1 className="text-lg font-semibold">Datos - {dataset.name}</h1>
-        </header>
-
-        <div className="flex-1 flex overflow-hidden">
-          <aside className="w-72 border-r p-4 overflow-y-auto">
-            <FilterBuilder
-              columns={schemaColumns}
-              filters={filters}
-              metrics={metrics}
-              groupBys={groupBys}
-              sorts={sorts}
-              onFiltersChange={setFilters}
-              onMetricsChange={setMetrics}
-              onGroupBysChange={setGroupBys}
-              onSortsChange={setSorts}
-            />
-            <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
-              <p>{data.length.toLocaleString()} registros</p>
-              {processedData.length !== data.length && (
-                <p>{processedData.length.toLocaleString()} resultados</p>
-              )}
-            </div>
-          </aside>
-
-          <div className="flex-1 overflow-auto p-4">
-            {loading ? (
-              <div className="h-full flex items-center justify-center">Cargando...</div>
-            ) : (
-              <DataTable
-                data={processedData}
-                columns={
-                  metrics.length > 0 ? schemaColumns.slice(0, metrics.length) : schemaColumns
-                }
+      {/* ── Body ── */}
+      <div className="flex-1 flex overflow-hidden">
+        <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Filtros y métricas</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto py-2">
+              <FilterBuilder
+                columns={schemaColumns}
                 filters={filters}
+                metrics={metrics}
+                groupBys={groupBys}
                 sorts={sorts}
                 onFiltersChange={setFilters}
+                onMetricsChange={setMetrics}
+                onGroupBysChange={setGroupBys}
                 onSortsChange={setSorts}
               />
-            )}
-          </div>
+            </div>
+            <DialogFooter className="flex-row! gap-2">
+              <div className="flex-1 text-xs text-muted-foreground">
+                <p>{data.length.toLocaleString()} registros totales</p>
+                {processedData.length !== data.length && (
+                  <p>{processedData.length.toLocaleString()} resultados</p>
+                )}
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setFilters([])}>
+                Limpiar
+              </Button>
+              <Button size="sm" onClick={() => setFilterDialogOpen(false)}>
+                Aplicar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Table */}
+        <div className="flex-1 overflow-auto min-w-0">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+              Cargando...
+            </div>
+          ) : (
+            <DataTable
+              data={processedData}
+              columns={metrics.length > 0 ? schemaColumns.slice(0, metrics.length) : schemaColumns}
+              filters={filters}
+              sorts={sorts}
+              onFiltersChange={setFilters}
+              onSortsChange={setSorts}
+            />
+          )}
         </div>
       </div>
+
+      {/* Edit dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Dataset</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Nombre</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Descripción</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleFileSelect}
+        className="hidden"
+        disabled={uploading}
+      />
     </main>
   )
 }
