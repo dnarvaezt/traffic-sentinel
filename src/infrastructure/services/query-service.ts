@@ -1,6 +1,5 @@
 import type {
   AggregationType,
-  Dataset,
   FilterDefinition,
   FilterOperator,
   GroupByDefinition,
@@ -152,7 +151,7 @@ function calculateAggregation(values: unknown[], type: AggregationType): number 
 }
 
 export function executeQuery(
-  dataset: Dataset,
+  data: Record<string, unknown>[],
   config: {
     filters?: FilterDefinition[]
     sorts?: SortDefinition[]
@@ -160,7 +159,7 @@ export function executeQuery(
     groupBy?: GroupByDefinition[]
   },
 ): Record<string, unknown>[] {
-  let result = dataset.data
+  let result = data
 
   if (config.filters && config.filters.length > 0) {
     result = applyFilters(result, config.filters)

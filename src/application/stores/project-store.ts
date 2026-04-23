@@ -1,29 +1,30 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Dashboard, Dataset, Project, Relationship, Schema, TableDefinition } from "../types"
+import type { ColumnDefinition, Dashboard, Database, Mapping, Project, Schema } from "../types"
 
 interface ProjectState {
   projects: Project[]
   activeProjectId: string | null
-  activeDatasetId: string | null
+  activeDatabaseId: string | null
   createProject: (name: string, description?: string) => Project
   updateProject: (id: string, updates: Partial<Project>) => void
   deleteProject: (id: string) => void
   setActiveProject: (id: string | null) => void
-  setActiveDataset: (id: string | null) => void
+  setActiveDatabase: (id: string | null) => void
   updateSchema: (projectId: string, schema: Schema) => void
-  addTable: (projectId: string, table: TableDefinition) => void
-  updateTable: (projectId: string, tableId: string, table: Partial<TableDefinition>) => void
-  deleteTable: (projectId: string, tableId: string) => void
-  addRelationship: (projectId: string, relationship: Relationship) => void
-  deleteRelationship: (projectId: string, relationshipId: string) => void
-  addDataset: (projectId: string, dataset: Dataset) => void
-  deleteDataset: (projectId: string, datasetId: string) => void
+  addColumn: (projectId: string, column: ColumnDefinition) => void
+  updateColumn: (projectId: string, columnId: string, updates: Partial<ColumnDefinition>) => void
+  deleteColumn: (projectId: string, columnId: string) => void
+  addDatabase: (projectId: string, database: Database) => void
+  updateDatabase: (projectId: string, databaseId: string, updates: Partial<Database>) => void
+  deleteDatabase: (projectId: string, databaseId: string) => void
+  addMapping: (projectId: string, mapping: Mapping) => void
+  deleteMapping: (projectId: string, mappingId: string) => void
   addDashboard: (projectId: string, dashboard: Dashboard) => void
   updateDashboard: (projectId: string, dashboardId: string, updates: Partial<Dashboard>) => void
   deleteDashboard: (projectId: string, dashboardId: string) => void
   getProject: (id: string) => Project | undefined
-  getDataset: (projectId: string, datasetId: string) => Dataset | undefined
+  getDatabase: (projectId: string, databaseId: string) => Database | undefined
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -31,15 +32,16 @@ export const useProjectStore = create<ProjectState>()(
     (set, get) => ({
       projects: [],
       activeProjectId: null,
-      activeDatasetId: null,
+      activeDatabaseId: null,
 
       createProject: (name, description) => {
         const project: Project = {
           id: crypto.randomUUID(),
           name,
           description,
-          schema: { tables: [], relationships: [] },
-          datasets: [],
+          schema: { columns: [] },
+          databases: [],
+          mappings: [],
           dashboards: [],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -64,7 +66,7 @@ export const useProjectStore = create<ProjectState>()(
       },
 
       setActiveProject: (id) => set({ activeProjectId: id }),
-      setActiveDataset: (id) => set({ activeDatasetId: id }),
+      setActiveDatabase: (id) => set({ activeDatabaseId: id }),
 
       updateSchema: (projectId, schema) => {
         set((state) => ({
@@ -74,7 +76,7 @@ export const useProjectStore = create<ProjectState>()(
         }))
       },
 
-      addTable: (projectId, table) => {
+      addColumn: (projectId, column) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
@@ -82,7 +84,7 @@ export const useProjectStore = create<ProjectState>()(
                   ...p,
                   schema: {
                     ...p.schema,
-                    tables: [...p.schema.tables, table],
+                    columns: [...(p.schema?.columns ?? []), column],
                   },
                   updatedAt: new Date(),
                 }
@@ -91,7 +93,7 @@ export const useProjectStore = create<ProjectState>()(
         }))
       },
 
-      updateTable: (projectId, tableId, tableUpdates) => {
+      updateColumn: (projectId, columnId, updates) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
@@ -99,8 +101,8 @@ export const useProjectStore = create<ProjectState>()(
                   ...p,
                   schema: {
                     ...p.schema,
-                    tables: p.schema.tables.map((t) =>
-                      t.id === tableId ? { ...t, ...tableUpdates } : t,
+                    columns: (p.schema?.columns ?? []).map((c) =>
+                      c.id === columnId ? { ...c, ...updates } : c,
                     ),
                   },
                   updatedAt: new Date(),
@@ -110,7 +112,7 @@ export const useProjectStore = create<ProjectState>()(
         }))
       },
 
-      deleteTable: (projectId, tableId) => {
+      deleteColumn: (projectId, columnId) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
@@ -118,7 +120,7 @@ export const useProjectStore = create<ProjectState>()(
                   ...p,
                   schema: {
                     ...p.schema,
-                    tables: p.schema.tables.filter((t) => t.id !== tableId),
+                    columns: (p.schema?.columns ?? []).filter((c) => c.id !== columnId),
                   },
                   updatedAt: new Date(),
                 }
@@ -127,16 +129,25 @@ export const useProjectStore = create<ProjectState>()(
         }))
       },
 
-      addRelationship: (projectId, relationship) => {
+      addDatabase: (projectId, database) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? { ...p, databases: [...(p.databases || []), database], updatedAt: new Date() }
+              : p,
+          ),
+        }))
+      },
+
+      updateDatabase: (projectId, databaseId, updates) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
               ? {
                   ...p,
-                  schema: {
-                    ...p.schema,
-                    relationships: [...p.schema.relationships, relationship],
-                  },
+                  databases: (p.databases || []).map((d) =>
+                    d.id === databaseId ? { ...d, ...updates } : d,
+                  ),
                   updatedAt: new Date(),
                 }
               : p,
@@ -144,16 +155,13 @@ export const useProjectStore = create<ProjectState>()(
         }))
       },
 
-      deleteRelationship: (projectId, relationshipId) => {
+      deleteDatabase: (projectId, databaseId) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
               ? {
                   ...p,
-                  schema: {
-                    ...p.schema,
-                    relationships: p.schema.relationships.filter((r) => r.id !== relationshipId),
-                  },
+                  databases: (p.databases || []).filter((d) => d.id !== databaseId),
                   updatedAt: new Date(),
                 }
               : p,
@@ -161,23 +169,23 @@ export const useProjectStore = create<ProjectState>()(
         }))
       },
 
-      addDataset: (projectId, dataset) => {
+      addMapping: (projectId, mapping) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
-              ? { ...p, datasets: [...p.datasets, dataset], updatedAt: new Date() }
+              ? { ...p, mappings: [...(p.mappings || []), mapping], updatedAt: new Date() }
               : p,
           ),
         }))
       },
 
-      deleteDataset: (projectId, datasetId) => {
+      deleteMapping: (projectId, mappingId) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
               ? {
                   ...p,
-                  datasets: p.datasets.filter((d) => d.id !== datasetId),
+                  mappings: (p.mappings || []).filter((m) => m.id !== mappingId),
                   updatedAt: new Date(),
                 }
               : p,
@@ -226,10 +234,10 @@ export const useProjectStore = create<ProjectState>()(
       },
 
       getProject: (id) => get().projects.find((p) => p.id === id),
-      getDataset: (projectId, datasetId) =>
+      getDatabase: (projectId, databaseId) =>
         get()
           .projects.find((p) => p.id === projectId)
-          ?.datasets.find((d) => d.id === datasetId),
+          ?.databases?.find((d) => d.id === databaseId),
     }),
     {
       name: "traffic-sentinel-projects",

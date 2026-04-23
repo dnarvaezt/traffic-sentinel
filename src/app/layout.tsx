@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { Theme } from "@radix-ui/themes"
 
 export const metadata: Metadata = {
   title: "Traffic Sentinel",
@@ -9,7 +10,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body className="antialiased" suppressHydrationWarning>
+        <Theme appearance="dark" accentColor="grass" grayColor="sand">
+          {children}
+        </Theme>
+      </body>
     </html>
   )
 }

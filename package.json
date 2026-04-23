@@ -3,19 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev -p 8080",
     "dev:https": "next dev --experimental-https",
-    "format": "biome format --write .",
-    "lint": "biome lint .",
-    "lint:fix": "biome check --write --no-errors-on-unmatched .",
-    "check": "biome check --write --no-errors-on-unmatched .",
-    "prepare": "husky || true",
+    "build": "next build",
     "start": "next start -p 8080",
+    "lint": "biome check --write --no-errors-on-unmatched .",
+    "lint:check": "biome check --no-errors-on-unmatched .",
+    "format": "biome format --write .",
+    "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "type-check": "tsc --noEmit"
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css}": [
@@ -37,6 +36,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toggle": "^1.1.10",
+    "@radix-ui/themes": "^3.3.0",
     "@types/react-window": "^2.0.0",
     "autoprefixer": "^10.5.0",
     "axios": "^1.15.2",

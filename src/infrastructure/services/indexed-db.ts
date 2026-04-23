@@ -1,6 +1,6 @@
-const DB_NAME = "traffic-sentinel-datasets"
+const DB_NAME = "traffic-sentinel-databases"
 const DB_VERSION = 1
-const STORE_NAME = "datasets"
+const STORE_NAME = "databases"
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -19,7 +19,7 @@ function openDB(): Promise<IDBDatabase> {
   })
 }
 
-export async function saveDataset(dataset: {
+export async function saveDatabaseData(database: {
   id: string
   projectId: string
   data: Record<string, unknown>[]
@@ -28,14 +28,14 @@ export async function saveDataset(dataset: {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readwrite")
     const store = transaction.objectStore(STORE_NAME)
-    const request = store.put(dataset)
+    const request = store.put(database)
 
     request.onerror = () => reject(request.error)
     request.onsuccess = () => resolve()
   })
 }
 
-export async function loadDataset(
+export async function loadDatabaseData(
   id: string,
 ): Promise<{ id: string; projectId: string; data: Record<string, unknown>[] } | undefined> {
   const db = await openDB()
@@ -49,7 +49,7 @@ export async function loadDataset(
   })
 }
 
-export async function deleteDataset(id: string): Promise<void> {
+export async function deleteDatabaseData(id: string): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readwrite")
@@ -61,7 +61,7 @@ export async function deleteDataset(id: string): Promise<void> {
   })
 }
 
-export async function listDatasets(): Promise<
+export async function listDatabases(): Promise<
   { id: string; projectId: string; data: Record<string, unknown>[] }[]
 > {
   const db = await openDB()

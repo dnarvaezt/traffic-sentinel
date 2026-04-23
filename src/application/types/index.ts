@@ -3,20 +3,14 @@ export interface Project {
   name: string
   description?: string
   schema: Schema
-  datasets: Dataset[]
+  databases: Database[]
+  mappings: Mapping[]
   dashboards: Dashboard[]
   createdAt: Date
   updatedAt: Date
 }
 
 export interface Schema {
-  tables: TableDefinition[]
-  relationships: Relationship[]
-}
-
-export interface TableDefinition {
-  id: string
-  name: string
   columns: ColumnDefinition[]
 }
 
@@ -32,24 +26,34 @@ export interface ColumnDefinition {
 
 export type ColumnType = "string" | "number" | "date" | "boolean" | "email" | "url"
 
-export interface Relationship {
-  id: string
-  sourceTableId: string
-  sourceColumnId: string
-  targetTableId: string
-  targetColumnId: string
-  type: "one-to-one" | "one-to-many"
-}
-
-export interface Dataset {
+export interface Database {
   id: string
   projectId: string
   name: string
-  tableId: string
+  description?: string
+  favorite?: boolean
+  columns: DatabaseColumn[]
   data: Record<string, unknown>[]
   rowCount: number
-  columns: ColumnDefinition[]
   uploadedAt: Date
+}
+
+export interface DatabaseColumn {
+  name: string
+  inferredType: string
+}
+
+export interface Mapping {
+  id: string
+  projectId: string
+  databaseId: string
+  physicalTableId: string
+  columnMappings: ColumnMapping[]
+}
+
+export interface ColumnMapping {
+  schemaColumnId: string
+  physicalColumnName: string
 }
 
 export interface Dashboard {
@@ -69,7 +73,6 @@ export interface Widget {
 export type WidgetType = "chart" | "table" | "metric" | "filter"
 
 export interface WidgetConfig {
-  datasetId: string
   chartType?: "line" | "bar" | "pie" | "area"
   metrics?: MetricDefinition[]
   groupBy?: GroupByDefinition[]
