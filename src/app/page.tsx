@@ -1,7 +1,5 @@
-import { HomePage } from "@/infrastructure/modules/home-page/home-page"
+import { redirect } from "next/navigation"
 
-const Home = () => {
-  return <HomePage />
+export default function HomePage() {
+  redirect("/projects")
 }
-
-export default Home
