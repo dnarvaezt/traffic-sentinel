@@ -5,6 +5,17 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useProjectStore } from "@/application/stores/project-store"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/infrastructure/components/ui/alert-dialog"
 import { Badge } from "@/infrastructure/components/ui/badge"
 import { Button } from "@/infrastructure/components/ui/button"
 import {
@@ -137,19 +148,35 @@ export default function ProjectsPage() {
 
         <div className="border-t pt-6">
           {projects.length > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (confirm("¿Eliminar todos los proyectos?")) {
-                  projects.forEach((p) => {
-                    deleteProject(p.id)
-                  })
-                }
-              }}
-            >
-              Eliminar todos los proyectos
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  Eliminar todos los proyectos
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Esto eliminará de forma permanente todos los
+                    proyectos y los datos asociados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => {
+                      projects.forEach((p) => {
+                        deleteProject(p.id)
+                      })
+                    }}
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
