@@ -14,7 +14,7 @@ import {
 import type {
   AggregationType,
   ColumnDefinition,
-  FilterDefinition,
+  FilterItem,
   FilterOperator,
   GroupByDefinition,
   MetricDefinition,
@@ -23,11 +23,11 @@ import type {
 
 interface FilterBuilderProps {
   columns: ColumnDefinition[]
-  filters: FilterDefinition[]
+  filters: FilterItem[]
   metrics: MetricDefinition[]
   groupBys: GroupByDefinition[]
   sorts: SortDefinition[]
-  onFiltersChange: (filters: FilterDefinition[]) => void
+  onFiltersChange: (filters: FilterItem[]) => void
   onMetricsChange: (metrics: MetricDefinition[]) => void
   onGroupBysChange: (groupBys: GroupByDefinition[]) => void
   onSortsChange: (sorts: SortDefinition[]) => void
@@ -70,8 +70,9 @@ export function FilterBuilder({
 
   function addFilter() {
     const filterableCol = columns.find((c) => c.filterable) || columns[0]
-    const newFilter: FilterDefinition = {
+    const newFilter: FilterItem = {
       id: crypto.randomUUID(),
+      name: "Filtro",
       columnId: filterableCol?.id || "",
       operator: "equals",
       value: "",
@@ -79,7 +80,7 @@ export function FilterBuilder({
     onFiltersChange([...filters, newFilter])
   }
 
-  function updateFilter(index: number, updates: Partial<FilterDefinition>) {
+  function updateFilter(index: number, updates: Partial<FilterItem>) {
     const updated = [...filters]
     updated[index] = { ...updated[index], ...updates }
     onFiltersChange(updated)

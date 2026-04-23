@@ -1,38 +1,50 @@
 "use client"
 
-import { ArrowLeft, BarChart3, ChevronRight, List, SlidersHorizontal, Star } from "lucide-react"
+import {
+  ArrowLeft,
+  BarChart3,
+  BookmarkPlus,
+  ChevronRight,
+  List,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+  X,
+} from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useProjectStore } from "@/application/stores/project-store"
-import type {
-  Database as DbType,
-  FilterDefinition,
-  GroupByDefinition,
-  MetricDefinition,
-  SortDefinition,
-} from "@/application/types"
-import { FilterBuilder } from "@/components/filters/filter-builder"
+import type { ColumnType, FilterItem, FilterOperator, SortDefinition } from "@/application/types"
 import { DataTable } from "@/components/table/data-table"
 import { Badge } from "@/infrastructure/components/ui/badge"
 import { Button } from "@/infrastructure/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/infrastructure/components/ui/dialog"
 import { Input } from "@/infrastructure/components/ui/input"
-import { Label } from "@/infrastructure/components/ui/label"
-import { Textarea } from "@/infrastructure/components/ui/textarea"
-import { parseCSV } from "@/infrastructure/services/csv-service"
 import {
-  deleteDatabaseData,
-  loadDatabaseData,
-  saveDatabaseData,
-} from "@/infrastructure/services/indexed-db"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/infrastructure/components/ui/select"
+import { loadDatabaseData } from "@/infrastructure/services/indexed-db"
 import { executeQuery } from "@/infrastructure/services/query-service"
+
+const OPERATORS: { value: FilterOperator; label: string }[] = [
+  { value: "contains", label: "Contiene" },
+  { value: "notContains", label: "No contiene" },
+  { value: "equals", label: "Igual a" },
+  { value: "notEquals", label: "Diferente de" },
+  { value: "greaterThan", label: "Mayor que" },
+  { value: "lessThan", label: "Menor que" },
+  { value: "greaterThanOrEquals", label: "Mayor o igual" },
+  { value: "lessThanOrEquals", label: "Menor o igual" },
+  { value: "between", label: "Entre" },
+  { value: "isNull", label: "Es nulo" },
+  { value: "isNotNull", label: "No es nulo" },
+]
+
+const NO_VALUE_OPS = new Set<FilterOperator>(["isNull", "isNotNull"])
 
 export default function DatasetViewPage() {
   const params = useParams()
@@ -40,103 +52,119 @@ export default function DatasetViewPage() {
   const projectId = params.id as string
   const datasetId = params.datasetId as string
 
-  const { getProject, addDatabase, updateDatabase, deleteDatabase } = useProjectStore()
+  const { getProject, addFilter: saveFilterToProject } = useProjectStore()
   const [mounted, setMounted] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const [data, setData] = useState<Record<string, unknown>[]>([])
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState<FilterDefinition[]>([])
-  const [sorts, setSorts] = useState<SortDefinition[]>([])
-  const [metrics, setMetrics] = useState<MetricDefinition[]>([])
-  const [groupBys, setGroupBys] = useState<GroupByDefinition[]>([])
 
-  const [uploading, setUploading] = useState(false)
-  const [filterDialogOpen, setFilterDialogOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
+  // Session filters — live only while the user is on this page
+  const [sessionFilters, setSessionFilters] = useState<FilterItem[]>([])
+  // Quick filters from the DataTable column headers
+  const [quickFilters, setQuickFilters] = useState<FilterItem[]>([])
+  const [sorts, setSorts] = useState<SortDefinition[]>([])
+
+  const [panelOpen, setPanelOpen] = useState(false)
+  // Which filter row is in "save" mode (showing name input)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [saveName, setSaveName] = useState("")
+  const saveInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const projectData = getProject(projectId)
-  const dataset = projectData?.databases?.find((d) => d.id === datasetId)
+  const project = getProject(projectId)
+  const dataset = project?.databases?.find((d) => d.id === datasetId)
 
   useEffect(() => {
-    if (dataset) {
-      setName(dataset.name)
-      setDescription(dataset.description || "")
-    }
-  }, [dataset])
-
-  useEffect(() => {
-    if (datasetId) {
-      setLoading(true)
-      loadDatabaseData(datasetId)
-        .then((loaded) => {
-          if (loaded) setData(loaded.data)
-        })
-        .finally(() => setLoading(false))
-    }
+    if (!datasetId) return
+    setLoading(true)
+    loadDatabaseData(datasetId)
+      .then((loaded) => {
+        if (loaded) setRawData(loaded.data)
+      })
+      .finally(() => setLoading(false))
   }, [datasetId])
 
-  const processedData = useMemo(() => {
-    if (!dataset || data.length === 0) return []
-    return executeQuery(data, {
-      filters,
-      sorts,
-      metrics,
-      groupBy: groupBys.length > 0 ? groupBys : undefined,
-    })
-  }, [dataset, data, filters, sorts, metrics, groupBys])
+  // id === name so Danfo.js can match columnId against DataFrame column names
+  const columns = useMemo(
+    () =>
+      (dataset?.columns ?? []).map((col) => ({
+        id: col.name,
+        name: col.name,
+        label: col.name,
+        type: (col.inferredType as ColumnType) ?? "string",
+        aggregatable: col.inferredType === "number",
+        filterable: true,
+      })),
+    [dataset],
+  )
 
-  const schemaColumns = projectData?.schema?.columns || []
-  const activeFiltersCount = filters.length + metrics.length + sorts.length + groupBys.length
+  // All operations go through Danfo.js
+  const processedData = useMemo(() => {
+    if (rawData.length === 0) return []
+    const activeSessionFilters = sessionFilters.filter(
+      (f) =>
+        NO_VALUE_OPS.has(f.operator) ||
+        String(f.value ?? "").trim() !== "" ||
+        Array.isArray(f.value),
+    )
+    return executeQuery(rawData, { filters: [...activeSessionFilters, ...quickFilters], sorts })
+  }, [rawData, sessionFilters, quickFilters, sorts])
 
   if (!mounted) return null
-  if (!projectData) return <p className="p-8 text-muted-foreground">Proyecto no encontrado</p>
+  if (!project) return <p className="p-8 text-muted-foreground">Proyecto no encontrado</p>
   if (!dataset) return <p className="p-8 text-muted-foreground">Dataset no encontrado</p>
 
-  async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file?.name.endsWith(".csv")) return
-    setUploading(true)
-    try {
-      const parsed = await parseCSV(file)
-      const database: DbType = {
-        id: crypto.randomUUID(),
-        projectId,
-        name: file.name.replace(".csv", ""),
-        columns: parsed.columns.map((c) => ({ name: c.name, inferredType: c.type })),
-        data: parsed.data,
-        rowCount: parsed.rowCount,
-        uploadedAt: new Date(),
-      }
-      await saveDatabaseData({ id: database.id, projectId, data: database.data })
-      addDatabase(projectId, database)
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ""
+  const activeFilterCount =
+    sessionFilters.filter(
+      (f) => NO_VALUE_OPS.has(f.operator) || String(f.value ?? "").trim() !== "",
+    ).length + quickFilters.filter((f) => String(f.value ?? "").trim() !== "").length
+
+  function addSessionFilter() {
+    const firstCol = columns[0]
+    if (!firstCol) return
+    const newFilter: FilterItem = {
+      id: crypto.randomUUID(),
+      columnId: firstCol.name,
+      operator: "contains",
+      value: "",
     }
+    setSessionFilters((prev) => [...prev, newFilter])
+    if (!panelOpen) setPanelOpen(true)
   }
 
-  async function _handleDelete() {
-    await deleteDatabaseData(datasetId)
-    deleteDatabase(projectId, datasetId)
-    router.push(`/projects/${projectId}`)
+  function updateSessionFilter(id: string, patch: Partial<FilterItem>) {
+    setSessionFilters((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)))
   }
 
-  function handleSave() {
-    if (!name.trim()) return
-    updateDatabase(projectId, datasetId, { name: name.trim(), description: description.trim() })
-    setEditOpen(false)
+  function removeSessionFilter(id: string) {
+    setSessionFilters((prev) => prev.filter((f) => f.id !== id))
+    if (savingId === id) setSavingId(null)
   }
 
-  function handleToggleFavorite() {
-    if (!dataset) return
-    updateDatabase(projectId, datasetId, { favorite: !dataset.favorite })
+  function startSave(id: string) {
+    setSavingId(id)
+    setSaveName("")
+    setTimeout(() => saveInputRef.current?.focus(), 50)
+  }
+
+  function confirmSave(filter: FilterItem) {
+    if (!saveName.trim()) return
+    saveFilterToProject(projectId, {
+      id: crypto.randomUUID(),
+      name: saveName.trim(),
+      columnId: filter.columnId,
+      operator: filter.operator,
+      value: filter.value,
+    })
+    setSavingId(null)
+    setSaveName("")
+  }
+
+  function cancelSave() {
+    setSavingId(null)
+    setSaveName("")
   }
 
   return (
@@ -154,22 +182,16 @@ export default function DatasetViewPage() {
 
         <div className="flex items-center gap-1 text-sm min-w-0">
           <span className="text-muted-foreground truncate hidden sm:block max-w-[100px]">
-            {projectData.name}
+            {project.name}
           </span>
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:block" />
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
-            <Star
-              className={`h-4 w-4 ${dataset.favorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
-            />
-          </Button>
           <span className="font-medium truncate max-w-[160px]">{dataset.name}</span>
         </div>
 
         <Badge variant="outline" className="text-xs shrink-0 hidden md:flex">
-          {data.length.toLocaleString()} filas
+          {processedData.length.toLocaleString()} / {rawData.length.toLocaleString()} filas
         </Badge>
 
-        {/* Tab switcher */}
         <nav className="flex items-center bg-muted rounded-lg p-0.5 mx-auto shrink-0">
           <span className="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm bg-background text-foreground shadow-sm">
             <List className="h-3.5 w-3.5" />
@@ -184,66 +206,205 @@ export default function DatasetViewPage() {
           </Link>
         </nav>
 
-        {/* Actions */}
-        <div className="flex items-center gap-0.5 ml-auto">
-          <div className="w-px h-5 bg-border mx-1 shrink-0" />
-
-          <Button
-            variant={filterDialogOpen ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 gap-1.5 px-2.5"
-            onClick={() => setFilterDialogOpen(true)}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline text-sm">Filtros</span>
-            {activeFiltersCount > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium">
-                {activeFiltersCount}
-              </span>
-            )}
-          </Button>
-        </div>
+        <Button
+          variant={panelOpen ? "secondary" : "ghost"}
+          size="sm"
+          className="h-8 gap-1.5 px-2.5 ml-auto"
+          onClick={() => setPanelOpen((o) => !o)}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline text-sm">Filtros</span>
+          {activeFilterCount > 0 && (
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
       </header>
 
       {/* ── Body ── */}
       <div className="flex-1 flex overflow-hidden">
-        <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-          <DialogContent className="sm:max-w-[480px]">
-            <DialogHeader>
-              <DialogTitle>Filtros y métricas</DialogTitle>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto py-2">
-              <FilterBuilder
-                columns={schemaColumns}
-                filters={filters}
-                metrics={metrics}
-                groupBys={groupBys}
-                sorts={sorts}
-                onFiltersChange={setFilters}
-                onMetricsChange={setMetrics}
-                onGroupBysChange={setGroupBys}
-                onSortsChange={setSorts}
-              />
+        {/* Filter panel */}
+        {panelOpen && (
+          <aside className="w-72 border-r flex flex-col shrink-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 h-10 border-b shrink-0">
+              <span className="text-sm font-medium">Filtros de sesión</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setPanelOpen(false)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <DialogFooter className="flex-row! gap-2">
-              <div className="flex-1 text-xs text-muted-foreground">
-                <p>{data.length.toLocaleString()} registros totales</p>
-                {processedData.length !== data.length && (
-                  <p>{processedData.length.toLocaleString()} resultados</p>
-                )}
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setFilters([])}>
-                Limpiar
-              </Button>
-              <Button size="sm" onClick={() => setFilterDialogOpen(false)}>
-                Aplicar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
-        {/* Table */}
-        <div className="flex-1 overflow-auto min-w-0">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {sessionFilters.length === 0 && (
+                <p className="text-xs text-muted-foreground px-1 py-2">
+                  Sin filtros. Los filtros se pierden al salir de la página.
+                </p>
+              )}
+
+              {sessionFilters.map((filter) => (
+                <div key={filter.id} className="border rounded-lg p-2 space-y-2 text-xs">
+                  {/* Column */}
+                  <Select
+                    value={filter.columnId}
+                    onValueChange={(v) => updateSessionFilter(filter.id, { columnId: v })}
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Columna" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {columns.map((col) => (
+                        <SelectItem key={col.name} value={col.name}>
+                          {col.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Operator */}
+                  <Select
+                    value={filter.operator}
+                    onValueChange={(v) =>
+                      updateSessionFilter(filter.id, { operator: v as FilterOperator, value: "" })
+                    }
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OPERATORS.map((op) => (
+                        <SelectItem key={op.value} value={op.value}>
+                          {op.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Value */}
+                  {!NO_VALUE_OPS.has(filter.operator) &&
+                    (filter.operator === "between" ? (
+                      <div className="flex gap-1">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={Array.isArray(filter.value) ? String(filter.value[0] ?? "") : ""}
+                          onChange={(e) =>
+                            updateSessionFilter(filter.id, {
+                              value: [
+                                e.target.value,
+                                Array.isArray(filter.value) ? filter.value[1] : "",
+                              ],
+                            })
+                          }
+                          className="h-7 text-xs"
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={Array.isArray(filter.value) ? String(filter.value[1] ?? "") : ""}
+                          onChange={(e) =>
+                            updateSessionFilter(filter.id, {
+                              value: [
+                                Array.isArray(filter.value) ? filter.value[0] : "",
+                                e.target.value,
+                              ],
+                            })
+                          }
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        type={
+                          columns.find((c) => c.name === filter.columnId)?.type === "number"
+                            ? "number"
+                            : "text"
+                        }
+                        placeholder="Valor"
+                        value={String(filter.value ?? "")}
+                        onChange={(e) => updateSessionFilter(filter.id, { value: e.target.value })}
+                        className="h-7 text-xs"
+                      />
+                    ))}
+
+                  {/* Save inline / actions */}
+                  {savingId === filter.id ? (
+                    <div className="flex gap-1">
+                      <Input
+                        ref={saveInputRef}
+                        placeholder="Nombre del filtro"
+                        value={saveName}
+                        onChange={(e) => setSaveName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") confirmSave(filter)
+                          if (e.key === "Escape") cancelSave()
+                        }}
+                        className="h-7 text-xs flex-1"
+                      />
+                      <Button
+                        size="icon"
+                        variant="default"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => confirmSave(filter)}
+                        disabled={!saveName.trim()}
+                      >
+                        <BookmarkPlus className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={cancelSave}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => startSave(filter.id)}
+                      >
+                        <BookmarkPlus className="h-3 w-3 mr-1" />
+                        Guardar
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeSessionFilter(filter.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 border-t shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5"
+                onClick={addSessionFilter}
+                disabled={columns.length === 0}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Agregar filtro
+              </Button>
+            </div>
+          </aside>
+        )}
+
+        {/* Data area */}
+        <div className="flex-1 overflow-hidden p-4">
           {loading ? (
             <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
               Cargando...
@@ -251,49 +412,15 @@ export default function DatasetViewPage() {
           ) : (
             <DataTable
               data={processedData}
-              columns={metrics.length > 0 ? schemaColumns.slice(0, metrics.length) : schemaColumns}
-              filters={filters}
+              columns={columns}
+              filters={quickFilters}
               sorts={sorts}
-              onFiltersChange={setFilters}
+              onFiltersChange={setQuickFilters}
               onSortsChange={setSorts}
             />
           )}
         </div>
       </div>
-
-      {/* Edit dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Dataset</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Nombre</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Descripción</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={uploading}
-      />
     </main>
   )
 }

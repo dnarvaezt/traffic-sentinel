@@ -46,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "danfojs": "^1.2.0",
     "iconv-lite-umd": "^0.6.10",
     "lucide-react": "^1.8.0",
     "next": "16.2.4",

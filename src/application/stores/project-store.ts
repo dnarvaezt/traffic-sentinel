@@ -1,6 +1,14 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { ColumnDefinition, Dashboard, Database, Mapping, Project, Schema } from "../types"
+import type {
+  ColumnDefinition,
+  Dashboard,
+  Database,
+  FilterDefinition,
+  Mapping,
+  Project,
+  Schema,
+} from "../types"
 
 interface ProjectState {
   projects: Project[]
@@ -18,6 +26,9 @@ interface ProjectState {
   addDatabase: (projectId: string, database: Database) => void
   updateDatabase: (projectId: string, databaseId: string, updates: Partial<Database>) => void
   deleteDatabase: (projectId: string, databaseId: string) => void
+  addFilter: (projectId: string, filter: FilterDefinition) => void
+  updateFilter: (projectId: string, filterId: string, updates: Partial<FilterDefinition>) => void
+  deleteFilter: (projectId: string, filterId: string) => void
   addMapping: (projectId: string, mapping: Mapping) => void
   deleteMapping: (projectId: string, mappingId: string) => void
   addDashboard: (projectId: string, dashboard: Dashboard) => void
@@ -41,6 +52,10 @@ export const useProjectStore = create<ProjectState>()(
           description,
           schema: { columns: [] },
           databases: [],
+          filters: [],
+          metrics: [],
+          groupBys: [],
+          sorts: [],
           mappings: [],
           dashboards: [],
           createdAt: new Date(),
@@ -162,6 +177,46 @@ export const useProjectStore = create<ProjectState>()(
               ? {
                   ...p,
                   databases: (p.databases || []).filter((d) => d.id !== databaseId),
+                  updatedAt: new Date(),
+                }
+              : p,
+          ),
+        }))
+      },
+
+      addFilter: (projectId, filter) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? { ...p, filters: [...(p.filters || []), filter], updatedAt: new Date() }
+              : p,
+          ),
+        }))
+      },
+
+      updateFilter: (projectId, filterId, updates) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  filters: (p.filters || []).map((f) =>
+                    f.id === filterId ? { ...f, ...updates } : f,
+                  ),
+                  updatedAt: new Date(),
+                }
+              : p,
+          ),
+        }))
+      },
+
+      deleteFilter: (projectId, filterId) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  filters: (p.filters || []).filter((f) => f.id !== filterId),
                   updatedAt: new Date(),
                 }
               : p,

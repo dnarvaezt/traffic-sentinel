@@ -1,22 +1,10 @@
 "use client"
 
-import { Database, FolderOpen, LayoutDashboard, Plus } from "lucide-react"
+import { FileSpreadsheet, Filter, FolderOpen, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useProjectStore } from "@/application/stores/project-store"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/infrastructure/components/ui/alert-dialog"
-import { Badge } from "@/infrastructure/components/ui/badge"
 import { Button } from "@/infrastructure/components/ui/button"
 import {
   Dialog,
@@ -79,7 +67,9 @@ export default function ProjectsPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Crear Nuevo Proyecto</DialogTitle>
-                <DialogDescription>Ingresa los detalles de tu nuevo proyecto.</DialogDescription>
+                <DialogDescription>
+                  Define el nombre y descripción de tu proyecto.
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
@@ -92,7 +82,7 @@ export default function ProjectsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Descripción (opcional)</Label>
+                  <Label htmlFor="description">Descripción</Label>
                   <Textarea
                     id="description"
                     value={description}
@@ -102,9 +92,10 @@ export default function ProjectsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" onClick={handleCreate}>
-                  Crear
+                <Button variant="outline" onClick={() => setOpen(false)}>
+                  Cancelar
                 </Button>
+                <Button onClick={handleCreate}>Crear</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -122,8 +113,8 @@ export default function ProjectsPage() {
               <TableRow>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
-                <TableHead className="text-center">Bases de Datos</TableHead>
-                <TableHead className="text-center">Dashboards</TableHead>
+                <TableHead className="text-center">Datasets</TableHead>
+                <TableHead className="text-center">Filtros</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -138,83 +129,31 @@ export default function ProjectsPage() {
                       {project.name}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground max-w-xs truncate">
                     {project.description || <span className="text-xs">Sin descripción</span>}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary">
-                      <Database className="mr-1 h-3 w-3" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs">
+                      <FileSpreadsheet className="h-3 w-3" />
                       {project.databases?.length || 0}
-                    </Badge>
+                    </span>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary">
-                      <LayoutDashboard className="mr-1 h-3 w-3" />
-                      {project.dashboards.length}
-                    </Badge>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs">
+                      <Filter className="h-3 w-3" />
+                      {project.filters?.length || 0}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          Eliminar
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Eliminar proyecto?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            El proyecto &quot;{project.name}&quot; será eliminado permanentemente.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteProject(project.id)}>
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button variant="ghost" size="sm" onClick={() => deleteProject(project.id)}>
+                      Eliminar
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-
-        <div className="border-t pt-6">
-          {projects.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  Eliminar todos los proyectos
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Esto eliminará de forma permanente todos los
-                    proyectos y los datos asociados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={() => {
-                      projects.forEach((p) => {
-                        deleteProject(p.id)
-                      })
-                    }}
-                  >
-                    Eliminar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
       </div>
     </main>
   )

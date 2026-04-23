@@ -4,6 +4,10 @@ export interface Project {
   description?: string
   schema: Schema
   databases: Database[]
+  filters: FilterDefinition[]
+  metrics: MetricDefinition[]
+  groupBys: GroupByDefinition[]
+  sorts: SortDefinition[]
   mappings: Mapping[]
   dashboards: Dashboard[]
   createdAt: Date
@@ -32,6 +36,8 @@ export interface Database {
   name: string
   description?: string
   favorite?: boolean
+  activeFilterId?: string
+  temporaryFilter?: FilterDefinition
   columns: DatabaseColumn[]
   data: Record<string, unknown>[]
   rowCount: number
@@ -95,8 +101,14 @@ export interface GroupByDefinition {
   columnId: string
 }
 
+export interface FilterItem extends Omit<FilterDefinition, "name"> {
+  name?: string
+}
+
 export interface FilterDefinition {
   id: string
+  name: string
+  description?: string
   columnId: string
   operator: FilterOperator
   value: unknown

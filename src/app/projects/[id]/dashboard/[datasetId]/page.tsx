@@ -14,7 +14,7 @@ import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { useProjectStore } from "@/application/stores/project-store"
-import type { FilterDefinition, GroupByDefinition, MetricDefinition } from "@/application/types"
+import type { FilterItem, GroupByDefinition, MetricDefinition } from "@/application/types"
 import { ChartWidget } from "@/components/charts/chart-widget"
 import { FilterBuilder } from "@/components/filters/filter-builder"
 import { Badge } from "@/infrastructure/components/ui/badge"
@@ -49,7 +49,7 @@ export default function DashboardDatasetPage() {
   const [loadedData, setLoadedData] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
   const [charts, setCharts] = useState<ChartConfig[]>([])
-  const [filters, setFilters] = useState<FilterDefinition[]>([])
+  const [filters, setFilters] = useState<FilterItem[]>([])
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
   const [groupBys, setGroupBys] = useState<GroupByDefinition[]>([])
   const [panelOpen, setPanelOpen] = useState(true)
