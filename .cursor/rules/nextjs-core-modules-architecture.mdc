@@ -1,0 +1,155 @@
+---
+alwaysApply: true
+---
+
+# Next.js Architecture: core / modules / app
+
+## Regla fundamental — tres responsabilidades, tres carpetas
+
+| Carpeta | Responsabilidad | Qué puede importar |
+|---|---|---|
+| `src/app/` | **Routing únicamente** (Next.js pages, layouts, loading, error) | `@/modules/**` y `@/core/**` |
+| `src/modules/` | **UI** (componentes, hooks, contextos de presentación) | `@/core/**` y librerías de React |
+| `src/core/` | **Lógica de negocio y datos** (entities, use-cases, services, repositories) | TypeScript puro, **sin React** |
+
+## Estructura de directorios obligatoria
+
+```
+src/
+  app/                          # ← routing Next.js
+    /[feature]/
+      page.tsx                  # importa solo de @/modules/[feature]
+      layout.tsx
+      loading.tsx
+      error.tsx
+
+  core/                         # ← 🔵 lógica pura, sin React
+    /[feature]/
+      [feature].entity.ts       # interfaces / tipos del dominio
+      [feature].types.ts        # tipos auxiliares
+      [feature].service.ts      # transformación / filtrado / lógica
+      [feature].use-cases.ts    # casos de uso: getX, createX, updateX
+      [feature].repository.ts   # fetch / api / acceso a datos
+      index.ts                  # barrel export
+
+  modules/                      # ← 🟢 React UI
+    /[feature]/
+      /components/
+        [Feature]Table.tsx
+        [Feature]Form.tsx
+      /hooks/
+        use[Feature].ts
+      /context/                 # opcional, solo si hay estado compartido local
+        [Feature]Context.tsx
+      index.ts                  # barrel export
+
+  shared/                       # ← opcional: utilidades transversales
+    /components/
+    /hooks/
+    /utils/
+```
+
+## Flujo de dependencias — siempre de afuera hacia adentro
+
+```
+app  →  modules  →  core
+```
+
+- `app` puede importar de `modules` y de `core` (solo para Server Components).
+- `modules` puede importar de `core`, **nunca al revés**.
+- `core` es completamente independiente: sin React, sin Next.js, sin librerías de UI.
+
+## Ejemplos obligatorios
+
+### page.tsx — solo routing
+
+```tsx
+// src/app/users/page.tsx
+import { UserTable } from "@/modules/users/components/UserTable"
+
+export default function Page() {
+  return <UserTable />
+}
+```
+
+### hook — conecta UI con core
+
+```ts
+// src/modules/users/hooks/useUsers.ts
+import { getUsers } from "@/core/user/user.use-cases"
+import { usersRepository } from "@/core/user/user.repository"
+
+export function useUsers() {
+  const load = async () => getUsers(usersRepository)
+  return { load }
+}
+```
+
+### use-case — lógica pura
+
+```ts
+// src/core/user/user.use-cases.ts
+import type { UserRepository } from "./user.repository"
+
+export async function getUsers(repo: UserRepository) {
+  const users = await repo.getAll()
+  return users.filter((u) => u.active)
+}
+```
+
+### repository — acceso a datos
+
+```ts
+// src/core/user/user.repository.ts
+export interface UserRepository {
+  getAll(): Promise<User[]>
+}
+
+export const usersRepository: UserRepository = {
+  async getAll() {
+    const res = await fetch("/api/users")
+    return res.json()
+  },
+}
+```
+
+### Server Component — puede llamar core directamente
+
+```tsx
+// src/app/users/page.tsx (Server Component)
+import { getUsers } from "@/core/user/user.use-cases"
+import { usersRepository } from "@/core/user/user.repository"
+
+export default async function Page() {
+  const users = await getUsers(usersRepository)
+  return <UserTable initialData={users} />
+}
+```
+
+## Reglas de nomenclatura
+
+- Archivos en `core/`: `kebab-case` con sufijo descriptivo → `user.entity.ts`, `user.use-cases.ts`, `user.repository.ts`
+- Archivos en `modules/`: componentes en `PascalCase.tsx`, hooks en `camelCase.ts`
+- Carpetas siempre en `kebab-case`
+- Barrel exports obligatorios (`index.ts`) en cada carpeta de feature
+
+## Prohibiciones absolutas
+
+```
+❌ core/ importa React, hooks, componentes o librerías de UI
+❌ core/ importa desde modules/
+❌ app/page.tsx contiene lógica de negocio o estado local
+❌ modules/ contiene lógica de negocio (solo orquesta core/)
+❌ Hooks de UI en core/
+❌ fetch/axios directo dentro de un componente .tsx (va en core/repository)
+❌ useState / useEffect para lógica de negocio (va en core/service o use-case)
+```
+
+## Checklist antes de crear cualquier archivo nuevo
+
+- [ ] ¿Es routing puro? → va en `app/`
+- [ ] ¿Es un componente React, hook de presentación o contexto UI? → va en `modules/`
+- [ ] ¿Es lógica de negocio, transformación de datos o acceso a API? → va en `core/`
+- [ ] ¿`core/` tiene algún import de React? → **INCORRECTO**, mover lógica o mover archivo
+- [ ] ¿El componente hace fetch directo? → **INCORRECTO**, extraer a `core/[feature].repository.ts`
+- [ ] ¿Existe barrel `index.ts` en la carpeta del feature? → si no, crearlo
