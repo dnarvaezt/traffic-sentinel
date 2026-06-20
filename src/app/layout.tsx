@@ -3,8 +3,8 @@ import "./globals.css"
 import { Theme } from "@radix-ui/themes"
 
 export const metadata: Metadata = {
-  title: "Traffic Sentinel",
-  description: "Traffic monitoring and management system",
+  title: "InsightHub",
+  description: "Data analysis and visualization platform",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,6 +1,6 @@
 // ─── IndexedDB repository for raw dataset data ───────────────────────────────
 
-const DB_NAME = "traffic-sentinel-databases"
+const DB_NAME = "insighthub-databases"
 const DB_VERSION = 1
 const STORE_NAME = "databases"
 

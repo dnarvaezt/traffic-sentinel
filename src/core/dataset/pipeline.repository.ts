@@ -2,7 +2,7 @@
 
 import type { ValidationError } from "@/data-import/domain/models/validation"
 
-const DB_NAME = "traffic-sentinel-pipeline"
+const DB_NAME = "insighthub-pipeline"
 const DB_VERSION = 1
 const STORE_NAME = "pipeline-results"
 

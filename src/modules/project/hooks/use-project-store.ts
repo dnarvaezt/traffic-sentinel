@@ -291,6 +291,6 @@ export const useProjectStore = create<ProjectState>()(
           .projects.find((p) => p.id === projectId)
           ?.databases?.find((d) => d.id === databaseId),
     }),
-    { name: "traffic-sentinel-projects" },
+    { name: "insighthub-projects" },
   ),
 )

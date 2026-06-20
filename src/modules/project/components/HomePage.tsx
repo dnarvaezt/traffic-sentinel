@@ -1,6 +1,14 @@
 "use client"
 
-import { BarChart3, Database, FileSpreadsheet, FolderOpen, LayoutDashboard } from "lucide-react"
+import {
+  BarChart3,
+  ChevronDown,
+  Database,
+  FileSpreadsheet,
+  FolderOpen,
+  Plus,
+  Table2,
+} from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Button } from "@/shared/components/ui/button"
@@ -16,6 +24,7 @@ import { useProjectStore } from "../hooks/use-project-store"
 export function HomePage() {
   const { projects } = useProjectStore()
   const [mounted, setMounted] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -31,130 +40,141 @@ export function HomePage() {
     totalColumns: projects.reduce((acc, p) => acc + (p.schema?.columns?.length || 0), 0),
   }
 
-  if (!mounted) {
-    return null
-  }
+  if (!mounted) return null
 
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">Traffic Sentinel</h1>
-          <p className="text-lg text-muted-foreground">
-            Análisis y visualización de datos de tráfico vehicular
-          </p>
-        </div>
-
-        <div className="grid grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Proyectos</CardTitle>
-              <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.projects}</div>
-              <p className="text-xs text-muted-foreground">creados</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Datasets</CardTitle>
-              <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.datasets}</div>
-              <p className="text-xs text-muted-foreground">cargados</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Filas</CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalRows.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">registros totales</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Columnas</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalColumns}</div>
-              <p className="text-xs text-muted-foreground">definidas en schema</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Proyectos Recientes</CardTitle>
-              <CardDescription>Tus últimos proyectos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {projects.length > 0 ? (
-                <div className="space-y-4">
-                  {projects.slice(0, 5).map((project) => (
-                    <Link key={project.id} href={`/projects/${project.id}`}>
-                      <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors">
-                        <div className="flex items-center gap-3">
-                          <FolderOpen className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{project.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {project.databases?.length || 0} datasets
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(project.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No hay proyectos creados</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Comenzar</CardTitle>
-              <CardDescription>Acciones rápidas</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {projects.length > 0 ? (
+          <>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Proyectos</h2>
               <Link href="/projects">
-                <Button className="w-full justify-start">
+                <Button variant="outline" size="sm">
                   <FolderOpen className="mr-2 h-4 w-4" />
-                  Ver proyectos
+                  Ver todos
                 </Button>
               </Link>
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  <strong>Traffic Sentinel</strong> te permite analizar datos de tráfico vehicular,
-                  visualizar métricas y crear dashboards interactivos.
-                </p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Carga archivos CSV con datos de tráfico</li>
-                  <li>Define un schema para tus columnas</li>
-                  <li>Explora y filtra tus datos</li>
-                  <li>Crea visualizaciones personalizadas</li>
-                </ul>
+            </div>
+
+            <div className="space-y-3">
+              {projects.slice(0, 10).map((project) => (
+                <Card key={project.id} className="overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
+                  >
+                    <CardHeader className="flex flex-row items-center justify-between py-3">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <CardTitle className="text-base">{project.name}</CardTitle>
+                          <CardDescription>
+                            {project.databases?.length || 0} dataset
+                            {(project.databases?.length || 0) !== 1 ? "s" : ""} &middot;{" "}
+                            {new Date(project.createdAt).toLocaleDateString()}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${
+                          expandedId === project.id ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardHeader>
+                  </button>
+                  {expandedId === project.id && (
+                    <CardContent className="pt-0 pb-3 px-4">
+                      {project.databases && project.databases.length > 0 ? (
+                        <div className="space-y-1.5 ml-8">
+                          {project.databases.map((db) => (
+                            <Link
+                              key={db.id}
+                              href={`/projects/${project.id}/datasets/${db.id}`}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                            >
+                              <Table2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>{db.name}</span>
+                              <span className="text-xs text-muted-foreground ml-auto">
+                                {db.rowCount?.toLocaleString()} filas
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground ml-8">Sin datasets cargados</p>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center py-12 text-center">
+              <div className="p-3 rounded-full bg-primary/10 mb-4">
+                <BarChart3 className="h-8 w-8 text-primary" />
               </div>
+              <h2 className="text-xl font-semibold mb-2">InsightHub</h2>
+              <p className="text-muted-foreground max-w-md mb-6">
+                InsightHub te permite analizar tus datos, visualizar m&eacute;tricas y crear
+                dashboards interactivos. Comienza creando un proyecto y cargando tus datos.
+              </p>
+              <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-left">
+                <div className="flex items-start gap-2">
+                  <div className="p-1 rounded bg-primary/10 mt-0.5">
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Carga CSV</p>
+                    <p className="text-xs text-muted-foreground">
+                      Importa datos desde archivos CSV
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="p-1 rounded bg-primary/10 mt-0.5">
+                    <Table2 className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Define schemas</p>
+                    <p className="text-xs text-muted-foreground">
+                      Configura columnas, tipos y validaciones
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="p-1 rounded bg-primary/10 mt-0.5">
+                    <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Visualiza datos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Gr&aacute;ficos, tablas y m&eacute;tricas en dashboards
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="p-1 rounded bg-primary/10 mt-0.5">
+                    <Database className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Genera reportes</p>
+                    <p className="text-xs text-muted-foreground">Exporta informes en PDF y XLSX</p>
+                  </div>
+                </div>
+              </div>
+              <Link href="/projects">
+                <Button size="lg" className="gap-2">
+                  <Plus className="h-5 w-5" />
+                  Crear primer proyecto
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-        </div>
+        )}
       </div>
     </main>
   )
