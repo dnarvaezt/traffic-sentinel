@@ -1,6 +1,15 @@
 "use client"
 
-import { ArrowLeft, FileSpreadsheet, Filter, Pencil, Settings, Table2, Wrench } from "lucide-react"
+import {
+  ArrowLeft,
+  FileSpreadsheet,
+  Filter,
+  LayoutDashboard,
+  Pencil,
+  Settings,
+  Table2,
+  Wrench,
+} from "lucide-react"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/shared/components/ui/button"
@@ -18,7 +27,7 @@ import { Label } from "@/shared/components/ui/label"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { useProjectStore } from "../hooks/use-project-store"
 
-export type TabId = "datasets" | "data" | "config" | "filters" | "schema"
+export type TabId = "datasets" | "data" | "config" | "filters" | "schema" | "dashboard"
 
 interface NavItem {
   id: TabId
@@ -57,7 +66,9 @@ export function ProjectLayout({ children }: { children: React.ReactNode }) {
     ? "filters"
     : pathname.endsWith("/schema")
       ? "schema"
-      : (searchParams.get("tab") as TabId) || "datasets"
+      : pathname.endsWith("/dashboard")
+        ? "dashboard"
+        : (searchParams.get("tab") as TabId) || "datasets"
 
   function handleSaveProject() {
     if (!projectName.trim()) return
@@ -92,6 +103,12 @@ export function ProjectLayout({ children }: { children: React.ReactNode }) {
       label: "Datos",
       href: `/projects/${projectId}?tab=data`,
       icon: Table2,
+    },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      href: `/projects/${projectId}/dashboard`,
+      icon: LayoutDashboard,
     },
     {
       id: "config",

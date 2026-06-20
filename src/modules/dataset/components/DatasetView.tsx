@@ -44,7 +44,6 @@ const OPERATORS: { value: FilterOperator; label: string }[] = [
 export function DatasetView() {
   const {
     projectId,
-    datasetId,
     project,
     dataset,
     mounted,
@@ -114,7 +113,7 @@ export function DatasetView() {
             Datos
           </span>
           <Link
-            href={`/projects/${projectId}/dashboard/${datasetId}`}
+            href={`/projects/${projectId}/dashboard`}
             className="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <BarChart3 className="h-3.5 w-3.5" />
