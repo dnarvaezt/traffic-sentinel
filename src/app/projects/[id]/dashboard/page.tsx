@@ -1,10 +1,11 @@
 import { DashboardPage } from "@/modules/dashboard"
 import { ProjectLayout } from "@/modules/project/components/ProjectLayout"
 
-export default function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   return (
     <ProjectLayout>
-      <DashboardPage projectId={params.id} />
+      <DashboardPage projectId={id} />
     </ProjectLayout>
   )
 }

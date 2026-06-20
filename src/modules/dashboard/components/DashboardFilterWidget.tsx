@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import type { FilterDefinition, WidgetConfig } from "@/core/project"
+import type { ColumnDefinition, FilterDefinition, WidgetConfig } from "@/core/project"
 import { WidgetWrapper } from "./WidgetWrapper"
 
 interface DashboardFilterWidgetProps {
   data: Record<string, unknown>[]
-  columns: { name: string; label?: string; inferredType?: string }[]
+  columns: ColumnDefinition[]
   config: WidgetConfig
   onConfigChange?: (config: WidgetConfig) => void
   onRemove?: () => void
+  onSettings?: () => void
 }
 
 export function DashboardFilterWidget({
@@ -18,10 +19,11 @@ export function DashboardFilterWidget({
   config,
   onConfigChange,
   onRemove,
+  onSettings,
 }: DashboardFilterWidgetProps) {
   const [activeFilters, setActiveFilters] = useState<Map<string, string>>(new Map())
   const columnId = config.displayColumns?.[0]
-  const column = columns.find((c) => c.name === columnId)
+  const column = columns.find((c) => c.header === columnId)
   const uniqueValues = columnId ? [...new Set(data.map((r) => String(r[columnId] ?? "")))] : []
 
   const toggleFilter = (value: string) => {
@@ -58,7 +60,7 @@ export function DashboardFilterWidget({
   }
 
   return (
-    <WidgetWrapper title="Filtro Rápido" onRemove={onRemove}>
+    <WidgetWrapper title="Filtro Rápido" onRemove={onRemove} onSettings={onSettings}>
       <div className="space-y-2">
         <select
           className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
@@ -67,8 +69,8 @@ export function DashboardFilterWidget({
         >
           <option value="">Seleccionar columna</option>
           {columns.map((c) => (
-            <option key={c.name} value={c.name}>
-              {c.label || c.name}
+            <option key={c.header} value={c.header}>
+              {c.tooltip || c.header}
             </option>
           ))}
         </select>

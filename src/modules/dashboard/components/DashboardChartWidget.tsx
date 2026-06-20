@@ -1,10 +1,14 @@
 "use client"
 
+import { Chart, registerables } from "chart.js"
+
+Chart.register(...registerables)
+
 import { Settings2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Bar, Line, Pie } from "react-chartjs-2"
 import { executeQuery } from "@/core/dataset/dataset.service"
-import type { WidgetConfig } from "@/core/project"
+import type { ColumnDefinition, WidgetConfig } from "@/core/project"
 import { Button } from "@/shared/components/ui/button"
 import { Label } from "@/shared/components/ui/label"
 import {
@@ -18,10 +22,11 @@ import { WidgetWrapper } from "./WidgetWrapper"
 
 interface ChartWidgetDashboardProps {
   data: Record<string, unknown>[]
-  columns: { name: string; label?: string; inferredType?: string }[]
+  columns: ColumnDefinition[]
   config: WidgetConfig
   onConfigChange?: (config: WidgetConfig) => void
   onRemove?: () => void
+  onSettings?: () => void
 }
 
 export function DashboardChartWidget({
@@ -30,18 +35,18 @@ export function DashboardChartWidget({
   config,
   onConfigChange,
   onRemove,
+  onSettings,
 }: ChartWidgetDashboardProps) {
   const [showConfig, setShowConfig] = useState(false)
   const chartType = config.chartType || "bar"
 
   const numericColumns = columns.filter(
-    (c) =>
-      c.inferredType === "number" || c.inferredType === "float32" || c.inferredType === "int32",
+    (c) => c.type === "number" || c.type === "currency" || c.type === "percentage",
   )
   const allColumns = columns
 
-  const labelCol = config.metrics?.[0]?.columnId || allColumns[0]?.name || ""
-  const valueCol = config.metrics?.[1]?.columnId || numericColumns[0]?.name || ""
+  const labelCol = config.metrics?.[0]?.columnId || allColumns[0]?.header || ""
+  const valueCol = config.metrics?.[1]?.columnId || numericColumns[0]?.header || ""
   const groupByCol = config.groupBy?.[0]?.columnId
 
   const chartData = useMemo(() => {
@@ -160,8 +165,9 @@ export function DashboardChartWidget({
 
   return (
     <WidgetWrapper
-      title={chartType === "area" ? "Gráfico de Área" : `Gráfico ${chartType}`}
+      title={`Gráfico ${chartType === "bar" ? "Barras" : chartType === "line" ? "Líneas" : chartType === "pie" ? "Pastel" : "Área"}`}
       onRemove={onRemove}
+      onSettings={onSettings}
     >
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -200,8 +206,8 @@ export function DashboardChartWidget({
                 </SelectTrigger>
                 <SelectContent>
                   {allColumns.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>
-                      {c.label || c.name}
+                    <SelectItem key={c.header} value={c.header}>
+                      {c.tooltip || c.header}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -215,8 +221,8 @@ export function DashboardChartWidget({
                 </SelectTrigger>
                 <SelectContent>
                   {numericColumns.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>
-                      {c.label || c.name}
+                    <SelectItem key={c.header} value={c.header}>
+                      {c.tooltip || c.header}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -231,8 +237,8 @@ export function DashboardChartWidget({
                 <SelectContent>
                   <SelectItem value=" ">Sin agrupar</SelectItem>
                   {allColumns.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>
-                      {c.label || c.name}
+                    <SelectItem key={c.header} value={c.header}>
+                      {c.tooltip || c.header}
                     </SelectItem>
                   ))}
                 </SelectContent>

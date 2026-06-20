@@ -2,24 +2,24 @@
 
 import { useMemo } from "react"
 import { executeQuery } from "@/core/dataset/dataset.service"
-import type { WidgetConfig } from "@/core/project"
+import type { ColumnDefinition, WidgetConfig } from "@/core/project"
 import { WidgetWrapper } from "./WidgetWrapper"
 
 interface MetricWidgetProps {
   data: Record<string, unknown>[]
-  columns: { name: string; label?: string; inferredType?: string }[]
+  columns: ColumnDefinition[]
   config: WidgetConfig
   onConfigChange?: (config: WidgetConfig) => void
   onRemove?: () => void
+  onSettings?: () => void
 }
 
-export function MetricWidget({ data, columns, config, onRemove }: MetricWidgetProps) {
+export function MetricWidget({ data, columns, config, onRemove, onSettings }: MetricWidgetProps) {
   const metricDef = config.metrics?.[0]
   const numericColumns = columns.filter(
-    (c) =>
-      c.inferredType === "number" || c.inferredType === "float32" || c.inferredType === "int32",
+    (c) => c.type === "number" || c.type === "currency" || c.type === "percentage",
   )
-  const columnId = metricDef?.columnId || numericColumns[0]?.name || ""
+  const columnId = metricDef?.columnId || numericColumns[0]?.header || ""
   const aggregation = metricDef?.aggregation || "sum"
   const alias = metricDef?.alias || columnId
 
@@ -60,7 +60,7 @@ export function MetricWidget({ data, columns, config, onRemove }: MetricWidgetPr
       : String(value)
 
   return (
-    <WidgetWrapper title={alias} onRemove={onRemove}>
+    <WidgetWrapper title={alias} onRemove={onRemove} onSettings={onSettings}>
       <div className="h-full flex flex-col items-center justify-center gap-1">
         <span className="text-3xl font-bold tracking-tight">{formattedValue}</span>
         <span className="text-xs text-muted-foreground">

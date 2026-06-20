@@ -3,7 +3,7 @@
 import { GridLayout, type Layout } from "react-grid-layout"
 import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
-import type { Widget, WidgetConfig } from "@/core/project"
+import type { ColumnDefinition, Widget, WidgetConfig } from "@/core/project"
 import { DashboardChartWidget } from "./DashboardChartWidget"
 import { DashboardFilterWidget } from "./DashboardFilterWidget"
 import { DashboardTableWidget } from "./DashboardTableWidget"
@@ -12,10 +12,11 @@ import { MetricWidget } from "./MetricWidget"
 interface DashboardGridProps {
   widgets: Widget[]
   data: Record<string, unknown>[]
-  columns: { name: string; label?: string; inferredType?: string }[]
+  columns: ColumnDefinition[]
   onLayoutChange: (layout: Layout) => void
   onWidgetUpdate: (widgetId: string, config: WidgetConfig) => void
   onRemoveWidget: (widgetId: string) => void
+  onSettingsWidget?: (widget: Widget) => void
 }
 
 const COLUMNS = 12
@@ -28,6 +29,7 @@ export function DashboardGrid({
   onLayoutChange,
   onWidgetUpdate,
   onRemoveWidget,
+  onSettingsWidget,
 }: DashboardGridProps) {
   const layout: Layout = widgets.map((w) => ({
     i: w.id,
@@ -49,37 +51,37 @@ export function DashboardGrid({
     >
       {widgets.map((widget) => {
         const commonProps = {
-          key: widget.id,
           data,
           columns,
           config: widget.config,
           onConfigChange: (config: WidgetConfig) => onWidgetUpdate(widget.id, config),
           onRemove: () => onRemoveWidget(widget.id),
+          onSettings: onSettingsWidget ? () => onSettingsWidget(widget) : undefined,
         }
 
         switch (widget.type) {
           case "chart":
             return (
               <div key={widget.id} className="drag-handle">
-                <DashboardChartWidget {...commonProps} config={widget.config} />
+                <DashboardChartWidget key={widget.id} {...commonProps} config={widget.config} />
               </div>
             )
           case "metric":
             return (
               <div key={widget.id} className="drag-handle">
-                <MetricWidget {...commonProps} config={widget.config} />
+                <MetricWidget key={widget.id} {...commonProps} config={widget.config} />
               </div>
             )
           case "table":
             return (
               <div key={widget.id} className="drag-handle">
-                <DashboardTableWidget {...commonProps} config={widget.config} />
+                <DashboardTableWidget key={widget.id} {...commonProps} config={widget.config} />
               </div>
             )
           case "filter":
             return (
               <div key={widget.id} className="drag-handle">
-                <DashboardFilterWidget {...commonProps} config={widget.config} />
+                <DashboardFilterWidget key={widget.id} {...commonProps} config={widget.config} />
               </div>
             )
           default:

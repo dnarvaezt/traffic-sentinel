@@ -30,14 +30,14 @@ export function HomePage() {
     setMounted(true)
   }, [])
 
-  const stats = {
+  const _stats = {
     projects: projects.length,
     datasets: projects.reduce((acc, p) => acc + (p.databases?.length || 0), 0),
     totalRows: projects.reduce(
       (acc, p) => acc + p.databases.reduce((dbAcc, d) => dbAcc + (d.rowCount || 0), 0),
       0,
     ),
-    totalColumns: projects.reduce((acc, p) => acc + (p.schema?.columns?.length || 0), 0),
+    totalColumns: projects.reduce((acc, p) => acc + (p.config?.columns?.length || 0), 0),
   }
 
   if (!mounted) return null

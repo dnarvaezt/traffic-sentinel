@@ -192,7 +192,7 @@ export function DataTable({
                         <span className="notion-col-type-icon">
                           {TYPE_ICON[col.type] ?? <Text className="h-3 w-3" />}
                         </span>
-                        <span className="notion-col-name">{col.label || col.name}</span>
+                        <span className="notion-col-name">{col.tooltip || col.header}</span>
                         {sortDir === "asc" && <ArrowUp className="h-3 w-3 notion-sort-icon" />}
                         {sortDir === "desc" && <ArrowDown className="h-3 w-3 notion-sort-icon" />}
                         {hasFilter && !sortDir && (
@@ -310,7 +310,7 @@ export function DataTable({
                   {columns.map((col) => (
                     <td key={col.id} className="notion-td">
                       <span className="notion-cell-text">
-                        {formatCell(row[col.name], col.type)}
+                        {formatCell(row[col.header], col.type)}
                       </span>
                     </td>
                   ))}

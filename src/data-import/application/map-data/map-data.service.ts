@@ -8,8 +8,9 @@ export class MapDataService {
       }
 
       for (const col of columns) {
-        // Try to find the value by header or by id
-        const value = row[col.header] !== undefined ? row[col.header] : row[col.id]
+        if (col.kind === "virtual") continue
+        const sourceKey = col.sourceColumn || col.header
+        const value = row[sourceKey] !== undefined ? row[sourceKey] : row[col.id]
         mappedRow[col.id] = value
       }
 

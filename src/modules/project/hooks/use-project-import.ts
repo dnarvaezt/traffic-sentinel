@@ -29,10 +29,7 @@ export function useProjectImport(projectId: string) {
         name = `${name} (${suffix})`
       }
 
-      const columnInfo = schema.columns.map((c) => ({
-        name: c.header,
-        inferredType: c.type,
-      }))
+      const columnInfo = schema.columns
 
       addDatabase(projectId, {
         id: databaseId,

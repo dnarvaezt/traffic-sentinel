@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { executeQuery } from "@/core/dataset/dataset.service"
-import type { WidgetConfig } from "@/core/project"
+import type { ColumnDefinition, WidgetConfig } from "@/core/project"
 import {
   Table,
   TableBody,
@@ -15,10 +15,11 @@ import { WidgetWrapper } from "./WidgetWrapper"
 
 interface DashboardTableWidgetProps {
   data: Record<string, unknown>[]
-  columns: { name: string; label?: string; inferredType?: string }[]
+  columns: ColumnDefinition[]
   config: WidgetConfig
   onConfigChange?: (config: WidgetConfig) => void
   onRemove?: () => void
+  onSettings?: () => void
 }
 
 const PAGE_SIZE = 20
@@ -28,9 +29,10 @@ export function DashboardTableWidget({
   columns,
   config,
   onRemove,
+  onSettings,
 }: DashboardTableWidgetProps) {
   const [page, setPage] = useState(0)
-  const displayColumns = config.displayColumns ?? columns.map((c) => c.name)
+  const displayColumns = config.displayColumns ?? columns.map((c) => c.header)
 
   const filteredData = useMemo(
     () =>
@@ -44,7 +46,7 @@ export function DashboardTableWidget({
   const pageData = filteredData.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   return (
-    <WidgetWrapper title="Tabla de Datos" onRemove={onRemove}>
+    <WidgetWrapper title="Tabla de Datos" onRemove={onRemove} onSettings={onSettings}>
       <div className="space-y-2">
         <div className="border rounded-md overflow-auto max-h-[300px]">
           <Table>
@@ -52,7 +54,7 @@ export function DashboardTableWidget({
               <TableRow>
                 {displayColumns.map((col) => (
                   <TableHead key={col} className="text-xs whitespace-nowrap">
-                    {columns.find((c) => c.name === col)?.label || col}
+                    {columns.find((c) => c.header === col)?.tooltip || col}
                   </TableHead>
                 ))}
               </TableRow>

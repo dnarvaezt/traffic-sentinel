@@ -11,10 +11,25 @@ export type ColumnType =
 
 export type Alignment = "left" | "center" | "right"
 
+export type ColumnKind = "source" | "virtual"
+
+export interface ColumnValidation {
+  type: string
+  message: string
+  params?: Record<string, unknown>
+}
+
+export interface ColumnTransformer {
+  type: string
+  params?: Record<string, unknown>
+}
+
 export interface ColumnDefinition {
   id: string
   header: string
   type: ColumnType
+  kind?: ColumnKind
+  sourceColumn?: string
   tooltip?: string
   format?: string
   alignment?: Alignment
@@ -22,6 +37,7 @@ export interface ColumnDefinition {
   visibility?: boolean
   sortable?: boolean
   filterable?: boolean
-  // For calculated columns
-  calculate?: (row: any) => any
+  validations?: ColumnValidation[]
+  transformers?: ColumnTransformer[]
+  calculate?: string
 }

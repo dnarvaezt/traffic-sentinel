@@ -81,10 +81,10 @@ export function parseCSV(file: File): Promise<ParsedCSV> {
           const dtype = dtypeIndex >= 0 ? dtypes[dtypeIndex] : "string"
           const values = rawData.map((row) => row[name])
           const type = danfoDtypeToColumnType(dtype, values)
-          return { id: crypto.randomUUID(), name, type, label: name }
+          return { id: crypto.randomUUID(), header: name, type, tooltip: name }
         })
 
-        const typeMap = new Map(columns.map((c) => [c.name, c.type]))
+        const typeMap = new Map(columns.map((c) => [c.header, c.type]))
         const data = rawData.map((row) => {
           const coerced: Record<string, unknown> = {}
           for (const name of headers)

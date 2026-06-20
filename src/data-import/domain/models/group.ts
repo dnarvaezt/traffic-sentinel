@@ -1,5 +1,6 @@
 export interface GroupDefinition {
   columnId: string
+  label?: string
 }
 
 export interface GroupedData {
