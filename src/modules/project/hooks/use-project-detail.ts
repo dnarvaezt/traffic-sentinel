@@ -1,37 +1,29 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { deleteDatabaseData, parseCSV, saveDatabaseData } from "@/core/dataset"
+import { saveDatabaseData } from "@/core/dataset"
 import type { Database as DbType, FilterDefinition, FilterOperator } from "@/core/project"
+import { useProjectImport } from "./use-project-import"
 import { useProjectStore } from "./use-project-store"
-
-export type TabView = "datasets" | "filters" | "schema"
 
 export function useProjectDetail() {
   const params = useParams()
-  const router = useRouter()
   const projectId = params.id as string
   const {
     getProject,
-    updateProject,
     addDatabase,
     updateDatabase,
-    deleteDatabase,
     addFilter,
     updateFilter,
     deleteFilter,
+    updateImportConfig,
   } = useProjectStore()
 
   const [mounted, setMounted] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabView>("datasets")
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Project edit
-  const [editProjectOpen, setEditProjectOpen] = useState(false)
-  const [projectName, setProjectName] = useState("")
-  const [projectDescription, setProjectDescription] = useState("")
+  const projectImport = useProjectImport(projectId)
 
   // Dataset edit
   const [datasetEditOpen, setDatasetEditOpen] = useState(false)
@@ -54,36 +46,28 @@ export function useProjectDetail() {
 
   const projectData = getProject(projectId)
 
-  useEffect(() => {
-    if (projectData) {
-      setProjectName(projectData.name)
-      setProjectDescription(projectData.description || "")
-    }
-  }, [projectData])
-
-  function handleSaveProject() {
-    if (!projectName.trim()) return
-    updateProject(projectId, { name: projectName.trim(), description: projectDescription.trim() })
-    setEditProjectOpen(false)
-  }
-
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file?.name.endsWith(".csv")) return
     setUploading(true)
     try {
-      const parsed = await parseCSV(file)
-      const database: DbType = {
-        id: crypto.randomUUID(),
-        projectId,
-        name: file.name.replace(".csv", ""),
-        columns: parsed.columns.map((c) => ({ name: c.name, inferredType: c.type })),
-        data: parsed.data,
-        rowCount: parsed.rowCount,
-        uploadedAt: new Date(),
+      const schema = projectData?.importConfig
+      if (!schema || schema.columns.length === 0) {
+        const parsed = await (await import("@/core/dataset")).parseCSV(file)
+        const database: DbType = {
+          id: crypto.randomUUID(),
+          projectId,
+          name: file.name.replace(".csv", ""),
+          columns: parsed.columns.map((c) => ({ name: c.name, inferredType: c.type })),
+          data: parsed.data,
+          rowCount: parsed.rowCount,
+          uploadedAt: new Date(),
+        }
+        await saveDatabaseData({ id: database.id, projectId, data: database.data })
+        addDatabase(projectId, database)
+      } else {
+        await projectImport.importCSV(file, schema)
       }
-      await saveDatabaseData({ id: database.id, projectId, data: database.data })
-      addDatabase(projectId, database)
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -91,8 +75,7 @@ export function useProjectDetail() {
   }
 
   async function handleDeleteDataset(databaseId: string) {
-    await deleteDatabaseData(databaseId)
-    deleteDatabase(projectId, databaseId)
+    await projectImport.removeDataset(databaseId)
   }
 
   function openDatasetEdit(db: DbType) {
@@ -161,18 +144,8 @@ export function useProjectDetail() {
     projectId,
     projectData,
     mounted,
-    router,
-    activeTab,
-    setActiveTab,
     uploading,
     fileInputRef,
-    editProjectOpen,
-    setEditProjectOpen,
-    projectName,
-    setProjectName,
-    projectDescription,
-    setProjectDescription,
-    handleSaveProject,
     handleFileSelect,
     handleDeleteDataset,
     datasetEditOpen,
@@ -201,5 +174,8 @@ export function useProjectDetail() {
     openFilterDialog,
     handleFilterSave,
     handleDeleteFilter,
+    projectImport,
+    getProject,
+    updateImportConfig,
   }
 }

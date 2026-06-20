@@ -9,6 +9,7 @@ import type {
   Project,
   Schema,
 } from "@/core/project"
+import type { SchemaDefinition } from "@/data-import/domain/models/schema"
 
 interface ProjectState {
   projects: Project[]
@@ -34,6 +35,7 @@ interface ProjectState {
   addDashboard: (projectId: string, dashboard: Dashboard) => void
   updateDashboard: (projectId: string, dashboardId: string, updates: Partial<Dashboard>) => void
   deleteDashboard: (projectId: string, dashboardId: string) => void
+  updateImportConfig: (projectId: string, config: SchemaDefinition) => void
   getProject: (id: string) => Project | undefined
   getDatabase: (projectId: string, databaseId: string) => Database | undefined
 }
@@ -51,6 +53,14 @@ export const useProjectStore = create<ProjectState>()(
           name,
           description,
           schema: { columns: [] },
+          importConfig: {
+            columns: [],
+            validators: [],
+            filters: [],
+            groups: [],
+            calculations: [],
+            transformers: [],
+          },
           databases: [],
           filters: [],
           metrics: [],
@@ -265,6 +275,13 @@ export const useProjectStore = create<ProjectState>()(
                   updatedAt: new Date(),
                 }
               : p,
+          ),
+        })),
+
+      updateImportConfig: (projectId, config) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId ? { ...p, importConfig: config, updatedAt: new Date() } : p,
           ),
         })),
 

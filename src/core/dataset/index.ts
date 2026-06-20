@@ -1,3 +1,5 @@
 export * from "./csv.repository"
 export * from "./dataset.repository"
 export * from "./dataset.service"
+export * from "./pipeline.repository"
+export * from "./pipeline.service"

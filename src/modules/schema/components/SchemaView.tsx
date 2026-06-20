@@ -1,8 +1,8 @@
 "use client"
 
-import { ArrowLeft, GripVertical, Plus, Table2, Trash2 } from "lucide-react"
-import Link from "next/link"
+import { GripVertical, Plus, Table2, Trash2 } from "lucide-react"
 import type { ColumnType } from "@/core/project"
+import { ProjectLayout } from "@/modules/project/components/ProjectLayout"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,10 +43,8 @@ import { useSchema } from "../hooks/use-schema"
 
 export function SchemaView() {
   const {
-    projectId,
     projectData,
     mounted,
-    router,
     databases,
     selectedDatabaseId,
     setSelectedDatabaseId,
@@ -67,139 +65,109 @@ export function SchemaView() {
   } = useSchema()
 
   if (!mounted) return null
-
-  if (!projectData) {
-    return (
-      <main className="min-h-screen p-8">
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p>Proyecto no encontrado</p>
-            <Link href="/projects">
-              <Button className="mt-4">Volver</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </main>
-    )
-  }
+  if (!projectData) return null
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="border-b px-6 py-4 flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push(`/projects/${projectId}`)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">Esquema del Proyecto</h1>
-          <p className="text-sm text-muted-foreground">
-            {projectData.name} - Define las tablas y columnas
-          </p>
-        </div>
-      </header>
+    <ProjectLayout>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <CardTitle>Columnas del Esquema</CardTitle>
+            <Badge variant="secondary">{existingColumns.length} columnas</Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedDatabaseId("")
+                setLoadDialogOpen(true)
+              }}
+              disabled={databases.length === 0}
+              title={
+                databases.length === 0 ? "No hay datasets cargados en este proyecto" : undefined
+              }
+            >
+              <Table2 className="mr-1 h-3 w-3" />
+              Cargar desde dataset
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleAddColumn}>
+              <Plus className="mr-1 h-3 w-3" />
+              Agregar Columna
+            </Button>
+          </div>
+        </CardHeader>
 
-      <div className="flex-1 p-8 overflow-auto">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex items-center gap-2">
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                <CardTitle>Columnas del Esquema</CardTitle>
-                <Badge variant="secondary">{existingColumns.length} columnas</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedDatabaseId("")
-                    setLoadDialogOpen(true)
-                  }}
-                  disabled={databases.length === 0}
-                  title={
-                    databases.length === 0 ? "No hay datasets cargados en este proyecto" : undefined
-                  }
-                >
-                  <Table2 className="mr-1 h-3 w-3" />
-                  Cargar desde dataset
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleAddColumn}>
-                  <Plus className="mr-1 h-3 w-3" />
-                  Agregar Columna
-                </Button>
-              </div>
-            </CardHeader>
-
-            {existingColumns.length === 0 ? (
-              <CardContent className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-                <p className="text-lg">No hay columnas definidas</p>
-                <p className="text-sm">
-                  {databases.length > 0
-                    ? "Agrega columnas manualmente o carga desde un dataset"
-                    : "Agrega columnas para definir el esquema maestro"}
-                </p>
-              </CardContent>
-            ) : (
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-1/4">Nombre Lógico</TableHead>
-                      <TableHead className="w-1/4">Tipo</TableHead>
-                      <TableHead className="w-1/4">Label Visión</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {existingColumns.map((col) => (
-                      <TableRow key={col.id}>
-                        <TableCell>
-                          <Input
-                            value={col.name}
-                            onChange={(e) => handleUpdateColumn(col.id, { name: e.target.value })}
-                            className="h-8"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={col.type}
-                            onValueChange={(value) =>
-                              handleUpdateColumn(col.id, { type: value as ColumnType })
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {COLUMN_TYPES.map((t) => (
-                                <SelectItem key={t.value} value={t.value}>
-                                  {t.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={col.label || ""}
-                            onChange={(e) => handleUpdateColumn(col.id, { label: e.target.value })}
-                            placeholder="Label"
-                            className="h-8"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => deleteColumn(col.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            )}
-          </Card>
-        </div>
-      </div>
+        {existingColumns.length === 0 ? (
+          <CardContent className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+            <p className="text-lg">No hay columnas definidas</p>
+            <p className="text-sm">
+              {databases.length > 0
+                ? "Agrega columnas manualmente o carga desde un dataset"
+                : "Agrega columnas para definir el esquema maestro"}
+            </p>
+          </CardContent>
+        ) : (
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-1/4">Nombre Lógico</TableHead>
+                  <TableHead className="w-1/4">Tipo</TableHead>
+                  <TableHead className="w-1/4">Label Visión</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {existingColumns.map((col) => (
+                  <TableRow key={col.id}>
+                    <TableCell>
+                      <Input
+                        value={col.name}
+                        onChange={(e) => handleUpdateColumn(col.id, { name: e.target.value })}
+                        className="h-8"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={col.type}
+                        onValueChange={(value) =>
+                          handleUpdateColumn(col.id, { type: value as ColumnType })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COLUMN_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={col.label || ""}
+                        onChange={(e) => handleUpdateColumn(col.id, { label: e.target.value })}
+                        placeholder="Label"
+                        className="h-8"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => deleteColumn(col.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        )}
+      </Card>
 
       <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
         <DialogContent className="max-w-lg">
@@ -288,6 +256,6 @@ export function SchemaView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </ProjectLayout>
   )
 }

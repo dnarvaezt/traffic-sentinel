@@ -2,6 +2,7 @@
 
 import { Filter, Pencil, Plus, Trash2 } from "lucide-react"
 import type { FilterOperator } from "@/core/project"
+import { ProjectLayout } from "@/modules/project/components/ProjectLayout"
 import { Button } from "@/shared/components/ui/button"
 import {
   Dialog,
@@ -32,10 +33,8 @@ import { FILTER_OPERATORS, useFilters } from "../hooks/use-filters"
 
 export function FiltersView() {
   const {
-    projectId,
     projectData,
     mounted,
-    router,
     availableColumns,
     filterDialogOpen,
     setFilterDialogOpen,
@@ -56,141 +55,83 @@ export function FiltersView() {
   } = useFilters()
 
   if (!mounted) return null
-  if (!projectData) {
-    return (
-      <main className="min-h-screen p-8">
-        <p>Proyecto no encontrado</p>
-        <Button onClick={() => router.push("/projects")}>Volver a proyectos</Button>
-      </main>
-    )
-  }
+  if (!projectData) return null
 
   return (
-    <main className="min-h-screen flex">
-      <aside className="w-64 border-r p-4 space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push(`/projects/${projectId}`)}>
-          Volver al proyecto
+    <ProjectLayout>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Filtros guardados</h2>
+        <Button
+          size="sm"
+          onClick={() => openFilterDialog()}
+          disabled={availableColumns.length === 0}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo filtro
         </Button>
-
-        <div className="pt-2 border-t">
-          <p className="text-sm font-semibold px-2 mb-2 truncate">{projectData.name}</p>
-        </div>
-
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Navegación</h2>
-          <button
-            type="button"
-            onClick={() => router.push(`/projects/${projectId}`)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent"
-          >
-            Datasets
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/projects/${projectId}/filters`)}
-            className="w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm bg-secondary"
-          >
-            <span className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              Filtros
-            </span>
-            <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
-              {projectData.filters?.length ?? 0}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/projects/${projectId}/schema`)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent"
-          >
-            Schema
-          </button>
-        </div>
-      </aside>
-
-      <div className="flex-1 p-8 overflow-auto">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Filtros guardados</h2>
-            <Button
-              size="sm"
-              onClick={() => openFilterDialog()}
-              disabled={availableColumns.length === 0}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo filtro
-            </Button>
-          </div>
-
-          {availableColumns.length === 0 && (
-            <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg">
-              Sube un dataset primero para poder crear filtros.
-            </div>
-          )}
-
-          {projectData.filters?.length ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Columna</TableHead>
-                  <TableHead>Operador</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projectData.filters.map((filter) => {
-                  const operatorLabel = FILTER_OPERATORS.find(
-                    (o) => o.value === filter.operator,
-                  )?.label
-                  return (
-                    <TableRow key={filter.id}>
-                      <TableCell>
-                        <div className="font-medium">{filter.name}</div>
-                        {filter.description && (
-                          <div className="text-xs text-muted-foreground">{filter.description}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{filter.columnId}</TableCell>
-                      <TableCell>{operatorLabel}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {filter.value !== null && filter.value !== undefined
-                          ? String(filter.value)
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openFilterDialog(filter)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteFilter(filter.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground border rounded-lg">
-              <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No hay filtros guardados</p>
-              <p className="text-xs">Los filtros creados en un dataset aparecen aquí</p>
-            </div>
-          )}
-        </div>
       </div>
+
+      {availableColumns.length === 0 && (
+        <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg">
+          Sube un dataset primero para poder crear filtros.
+        </div>
+      )}
+
+      {projectData.filters?.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Columna</TableHead>
+              <TableHead>Operador</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {projectData.filters.map((filter) => {
+              const operatorLabel = FILTER_OPERATORS.find((o) => o.value === filter.operator)?.label
+              return (
+                <TableRow key={filter.id}>
+                  <TableCell>
+                    <div className="font-medium">{filter.name}</div>
+                    {filter.description && (
+                      <div className="text-xs text-muted-foreground">{filter.description}</div>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{filter.columnId}</TableCell>
+                  <TableCell>{operatorLabel}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {filter.value !== null && filter.value !== undefined
+                      ? String(filter.value)
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openFilterDialog(filter)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteFilter(filter.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className="text-center py-12 text-muted-foreground border rounded-lg">
+          <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No hay filtros guardados</p>
+          <p className="text-xs">Los filtros creados en un dataset aparecen aquí</p>
+        </div>
+      )}
 
       <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
         <DialogContent>
@@ -271,6 +212,6 @@ export function FiltersView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </ProjectLayout>
   )
 }

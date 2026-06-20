@@ -1,5 +1,7 @@
 // ─── Domain entities & types for the Project domain ─────────────────────────
 
+import type { SchemaDefinition } from "@/data-import/domain/models/schema"
+
 export interface Project {
   id: string
   name: string
@@ -12,6 +14,7 @@ export interface Project {
   sorts: SortDefinition[]
   mappings: Mapping[]
   dashboards: Dashboard[]
+  importConfig?: SchemaDefinition
   createdAt: Date
   updatedAt: Date
 }
