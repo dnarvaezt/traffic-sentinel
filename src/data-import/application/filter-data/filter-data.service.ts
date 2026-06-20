@@ -1,11 +1,7 @@
-import type { FilterDefinition } from "../../domain/models/filter"
+import type { FilterDefinition, FilterOperator } from "../../domain/models/filter"
 
 export class FilterDataService {
-  execute(
-    data: Record<string, any>[],
-    filters: FilterDefinition[],
-    runtimeFilters: Record<string, any> = {},
-  ): Record<string, any>[] {
+  execute(data: Record<string, any>[], filters: FilterDefinition[], runtimeFilters: Record<string, any> = {}): Record<string, any>[] {
     if (!filters || filters.length === 0) return data
 
     return data.filter((row) => {
@@ -20,9 +16,7 @@ export class FilterDataService {
         // Simple implementation of operators
         switch (filter.type) {
           case "text":
-            return String(value || "")
-              .toLowerCase()
-              .includes(String(filterValue).toLowerCase())
+            return String(value || "").toLowerCase().includes(String(filterValue).toLowerCase())
           case "number":
             return Number(value) === Number(filterValue)
           case "boolean":

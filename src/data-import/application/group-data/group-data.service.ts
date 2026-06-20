@@ -1,20 +1,13 @@
 import type { GroupDefinition, GroupedData } from "../../domain/models/group"
 
 export class GroupDataService {
-  execute(
-    data: Record<string, any>[],
-    groups: GroupDefinition[],
-  ): GroupedData[] | Record<string, any>[] {
+  execute(data: Record<string, any>[], groups: GroupDefinition[]): GroupedData[] | Record<string, any>[] {
     if (!groups || groups.length === 0) return data
 
     return this.groupRecursive(data, groups, 0)
   }
 
-  private groupRecursive(
-    data: Record<string, any>[],
-    groups: GroupDefinition[],
-    depth: number,
-  ): GroupedData[] {
+  private groupRecursive(data: Record<string, any>[], groups: GroupDefinition[], depth: number): GroupedData[] {
     const groupDef = groups[depth]
     const grouped = new Map<string, Record<string, any>[]>()
 

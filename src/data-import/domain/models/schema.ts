@@ -1,9 +1,9 @@
-import type { Calculator } from "./calculation"
 import type { ColumnDefinition } from "./column"
+import type { Validator } from "./validation"
 import type { FilterDefinition } from "./filter"
 import type { GroupDefinition } from "./group"
 import type { Transformer } from "./transformation"
-import type { Validator } from "./validation"
+import type { Calculator } from "./calculation"
 
 export interface SchemaDefinition {
   columns: ColumnDefinition[]

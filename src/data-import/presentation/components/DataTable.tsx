@@ -1,7 +1,8 @@
 "use client"
 
-import { AlertCircle, HelpCircle } from "lucide-react"
-import type * as React from "react"
+import type { SchemaDefinition } from "../../domain/models/schema"
+import type { ValidationError } from "../../domain/models/validation"
+import type { GroupedData } from "../../domain/models/group"
 import {
   Table,
   TableBody,
@@ -10,15 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table"
+import { AlertCircle, HelpCircle } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip"
-import type { GroupedData } from "../../domain/models/group"
-import type { SchemaDefinition } from "../../domain/models/schema"
-import type { ValidationError } from "../../domain/models/validation"
 
 interface DataTableProps {
   schema: SchemaDefinition
@@ -31,15 +30,12 @@ export function DataTable({ schema, data, errors = [] }: DataTableProps) {
     return data.length > 0 && "key" in data[0] && "rows" in data[0]
   }
 
-  const renderRows = (rows: Record<string, any>[] | GroupedData[], depth = 0): React.ReactNode => {
+  const renderRows = (rows: Record<string, any>[] | GroupedData[], depth = 0) => {
     if (isGrouped(rows)) {
       return rows.map((group) => (
         <>
           <TableRow key={group.key} className="bg-muted/30 font-medium">
-            <TableCell
-              colSpan={schema.columns.length}
-              style={{ paddingLeft: `${depth * 20 + 16}px` }}
-            >
+            <TableCell colSpan={schema.columns.length} style={{ paddingLeft: `${depth * 20 + 16}px` }}>
               {group.key} ({group.rows.length})
             </TableCell>
           </TableRow>

@@ -1,9 +1,16 @@
 "use client"
 
+import type { FilterDefinition } from "../../domain/models/filter"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select"
 import { Switch } from "@/shared/components/ui/switch"
-import type { FilterDefinition } from "../../domain/models/filter"
 
 interface FilterPanelProps {
   filters: FilterDefinition[]
