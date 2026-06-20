@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
-import { Upload, X, FileText } from "lucide-react"
+import { FileText, Upload, X } from "lucide-react"
+import { useRef, useState } from "react"
 import { Button } from "@/shared/components/ui/button"
 
 interface UploadCSVProps {
@@ -79,7 +79,9 @@ export function UploadCSV({ onFileUpload, onReplaceFile, file, loading }: Upload
       </div>
       <div className="text-center">
         <p className="text-lg font-medium">Arrastra tu archivo CSV aquí</p>
-        <p className="text-sm text-muted-foreground">o haz clic para seleccionar uno desde tu equipo</p>
+        <p className="text-sm text-muted-foreground">
+          o haz clic para seleccionar uno desde tu equipo
+        </p>
       </div>
       <Button variant="outline" className="mt-2">
         Seleccionar archivo

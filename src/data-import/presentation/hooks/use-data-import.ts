@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useCallback, useState } from "react"
+import { exportDataService } from "../../application/export-data/export-data.service"
+import { importEngine } from "../../application/import-engine"
+import type { GroupedData } from "../../domain/models/group"
 import type { SchemaDefinition } from "../../domain/models/schema"
 import type { ValidationError } from "../../domain/models/validation"
-import type { GroupedData } from "../../domain/models/group"
-import { importEngine } from "../../application/import-engine"
-import { exportDataService } from "../../application/export-data/export-data.service"
 
 export function useDataImport(schema: SchemaDefinition) {
   const [file, setFile] = useState<File | null>(null)

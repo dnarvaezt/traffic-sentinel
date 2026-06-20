@@ -1,13 +1,13 @@
+import type { GroupedData } from "../domain/models/group"
 import type { SchemaDefinition } from "../domain/models/schema"
 import type { ValidationError } from "../domain/models/validation"
-import type { GroupedData } from "../domain/models/group"
-import { parseCSVService } from "./parse-csv/parse-csv.service"
+import { calculateColumnsService } from "./calculate-columns/calculate-columns.service"
+import { filterDataService } from "./filter-data/filter-data.service"
+import { groupDataService } from "./group-data/group-data.service"
 import { mapDataService } from "./map-data/map-data.service"
+import { parseCSVService } from "./parse-csv/parse-csv.service"
 import { transformDataService } from "./transform-data/transform-data.service"
 import { validateDataService } from "./validate-data/validate-data.service"
-import { calculateColumnsService } from "./calculate-columns/calculate-columns.service"
-import { groupDataService } from "./group-data/group-data.service"
-import { filterDataService } from "./filter-data/filter-data.service"
 
 export interface PipelineResult {
   rawData: Record<string, any>[]
@@ -38,10 +38,17 @@ export class ImportEngine {
     const errors = await validateDataService.execute(transformedData, schema.validators || [])
 
     // 5. Calculate
-    const calculatedData = calculateColumnsService.execute(transformedData, schema.calculations || [])
+    const calculatedData = calculateColumnsService.execute(
+      transformedData,
+      schema.calculations || [],
+    )
 
     // 6. Filter
-    const filteredData = filterDataService.execute(calculatedData, schema.filters || [], runtimeFilters)
+    const filteredData = filterDataService.execute(
+      calculatedData,
+      schema.filters || [],
+      runtimeFilters,
+    )
 
     // 7. Group
     const groupedData = groupDataService.execute(filteredData, schema.groups || [])

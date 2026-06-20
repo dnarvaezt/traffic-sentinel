@@ -1,48 +1,46 @@
 "use client"
 
+import { ClipboardList, Database, Download, GraduationCap, Users } from "lucide-react"
 import { useState } from "react"
-import { useDataImport } from "@/data-import/presentation/hooks/use-data-import"
 import { employeeSchema } from "@/data-import/configs/employee-import.config"
 import { learningPlanSchema } from "@/data-import/configs/learning-plan.config"
-import { usersImportSchema, competenciesImportSchema } from "@/data-import/configs/users-and-competencies.config"
-import { UploadCSV } from "@/data-import/presentation/components/UploadCSV"
+import {
+  competenciesImportSchema,
+  usersImportSchema,
+} from "@/data-import/configs/users-and-competencies.config"
 import { DataTable } from "@/data-import/presentation/components/DataTable"
 import { FilterPanel } from "@/data-import/presentation/components/FilterPanel"
 import { GroupPanel } from "@/data-import/presentation/components/GroupPanel"
+import { UploadCSV } from "@/data-import/presentation/components/UploadCSV"
+import { useDataImport } from "@/data-import/presentation/hooks/use-data-import"
 import { Button } from "@/shared/components/ui/button"
-import { Download, Database, Users, GraduationCap, ClipboardList } from "lucide-react"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/shared/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 
 const SCHEMAS = {
   employees: {
     name: "Empleados",
     schema: employeeSchema,
     icon: Users,
-    description: "Importación de personal con cálculos de avance y agrupación por país."
+    description: "Importación de personal con cálculos de avance y agrupación por país.",
   },
   learning: {
     name: "Planes de Aprendizaje",
     schema: learningPlanSchema,
     icon: GraduationCap,
-    description: "Planes con validación de fechas y múltiples niveles de agrupación."
+    description: "Planes con validación de fechas y múltiples niveles de agrupación.",
   },
   users: {
     name: "Usuarios",
     schema: usersImportSchema,
     icon: Database,
-    description: "Gestión de usuarios con filtros de estado y rol."
+    description: "Gestión de usuarios con filtros de estado y rol.",
   },
   competencies: {
     name: "Competencias",
     schema: competenciesImportSchema,
     icon: ClipboardList,
-    description: "Competencias con validación de unicidad por columna."
-  }
+    description: "Competencias con validación de unicidad por columna.",
+  },
 }
 
 export default function DataImportDemoPage() {
@@ -118,10 +116,7 @@ export default function DataImportDemoPage() {
                   onChange={handleFilterChange}
                 />
 
-                <GroupPanel
-                  groups={item.schema.groups || []}
-                  columns={item.schema.columns}
-                />
+                <GroupPanel groups={item.schema.groups || []} columns={item.schema.columns} />
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">

@@ -1,10 +1,9 @@
 "use client"
 
-import type { GroupDefinition } from "../../domain/models/group"
-import type { ColumnDefinition } from "../../domain/models/column"
+import { Layers } from "lucide-react"
 import { Badge } from "@/shared/components/ui/badge"
-import { Button } from "@/shared/components/ui/button"
-import { Layers, X } from "lucide-react"
+import type { ColumnDefinition } from "../../domain/models/column"
+import type { GroupDefinition } from "../../domain/models/group"
 
 interface GroupPanelProps {
   groups: GroupDefinition[]
