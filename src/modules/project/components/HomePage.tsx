@@ -10,6 +10,7 @@ import {
   Table2,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/shared/components/ui/button"
 import {
@@ -23,6 +24,7 @@ import { useProjectStore } from "../hooks/use-project-store"
 
 export function HomePage() {
   const { projects } = useProjectStore()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -60,30 +62,41 @@ export function HomePage() {
             <div className="space-y-3">
               {projects.slice(0, 10).map((project) => (
                 <Card key={project.id} className="overflow-hidden">
-                  <button
-                    type="button"
-                    className="w-full text-left"
-                    onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
-                  >
-                    <CardHeader className="flex flex-row items-center justify-between py-3">
-                      <div className="flex items-center gap-3">
-                        <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <div>
-                          <CardTitle className="text-base">{project.name}</CardTitle>
-                          <CardDescription>
-                            {project.databases?.length || 0} dataset
-                            {(project.databases?.length || 0) !== 1 ? "s" : ""} &middot;{" "}
-                            {new Date(project.createdAt).toLocaleDateString()}
-                          </CardDescription>
+                  <div className="flex items-stretch">
+                    <button
+                      type="button"
+                      className="flex-1 text-left"
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between py-3">
+                        <div className="flex items-center gap-3">
+                          <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
+                          <div>
+                            <CardTitle className="text-base hover:text-primary transition-colors">
+                              {project.name}
+                            </CardTitle>
+                            <CardDescription>
+                              {project.databases?.length || 0} dataset
+                              {(project.databases?.length || 0) !== 1 ? "s" : ""} &middot;{" "}
+                              {new Date(project.createdAt).toLocaleDateString()}
+                            </CardDescription>
+                          </div>
                         </div>
-                      </div>
+                      </CardHeader>
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 hover:bg-accent transition-colors"
+                      onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
+                      aria-label={expandedId === project.id ? "Collapse" : "Expand"}
+                    >
                       <ChevronDown
                         className={`h-4 w-4 text-muted-foreground transition-transform ${
                           expandedId === project.id ? "rotate-180" : ""
                         }`}
                       />
-                    </CardHeader>
-                  </button>
+                    </button>
+                  </div>
                   {expandedId === project.id && (
                     <CardContent className="pt-0 pb-3 px-4">
                       {project.databases && project.databases.length > 0 ? (

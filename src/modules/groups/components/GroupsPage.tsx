@@ -6,6 +6,8 @@ import {
   DragOverlay,
   type DragStartEvent,
   PointerSensor,
+  useDraggable,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
@@ -26,6 +28,58 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select"
 import { GroupsPreview } from "./GroupsPreview"
+
+function GroupDropZone({
+  groups,
+  columns,
+  onRemove,
+  onLabelChange,
+}: {
+  groups: GroupDefinition[]
+  columns: ColumnDefinition[]
+  onRemove: (columnId: string) => void
+  onLabelChange: (columnId: string, label: string) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: "group-drop-zone" })
+
+  return (
+    <div>
+      <h3 className="text-sm font-medium mb-2">Niveles de agrupación</h3>
+      <div
+        ref={setNodeRef}
+        className={`min-h-[120px] rounded-lg border-2 border-dashed p-3 space-y-2 transition-colors ${
+          isOver
+            ? "border-primary bg-primary/5"
+            : groups.length === 0
+              ? "border-muted-foreground/30"
+              : "border-primary/30"
+        }`}
+      >
+        {groups.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">
+            Arrastra columnas aquí para agrupar
+          </p>
+        ) : (
+          <SortableContext
+            items={groups.map((g) => g.columnId)}
+            strategy={verticalListSortingStrategy}
+          >
+            {groups.map((g, i) => (
+              <SortableGroupLevel
+                key={g.columnId}
+                group={g}
+                index={i}
+                columns={columns}
+                onRemove={() => onRemove(g.columnId)}
+                onLabelChange={(label) => onLabelChange(g.columnId, label)}
+              />
+            ))}
+          </SortableContext>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function SortableGroupLevel({
   group,
@@ -92,13 +146,27 @@ function DraggableColumn({
   isUsed: boolean
   isDragging?: boolean
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    isDragging: isDraggingActive,
+  } = useDraggable({
+    id: column.id,
+    data: { column },
+    disabled: isUsed,
+  })
+
   return (
     <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
         isUsed
           ? "bg-muted/50 border-dashed text-muted-foreground cursor-not-allowed opacity-50"
-          : "bg-card hover:bg-accent cursor-grab"
-      } ${isDragging ? "opacity-50 shadow-lg" : ""}`}
+          : "bg-card hover:bg-accent cursor-grab active:cursor-grabbing"
+      } ${isDragging || isDraggingActive ? "opacity-50 shadow-lg" : ""}`}
     >
       <span className="font-medium truncate flex-1">{column.header}</span>
       <Badge variant="outline" className="text-[10px] shrink-0">
@@ -158,7 +226,6 @@ export function GroupsPage() {
     if (!over) return
 
     const draggedId = active.id as string
-    const targetId = over.id as string
 
     const isNewGroup = availableColumns.some((c) => c.id === draggedId)
 
@@ -168,8 +235,10 @@ export function GroupsPage() {
       return
     }
 
+    if (over.id === "group-drop-zone") return
+
     const oldIndex = groups.findIndex((g) => g.columnId === draggedId)
-    const newIndex = groups.findIndex((g) => g.columnId === targetId)
+    const newIndex = groups.findIndex((g) => g.columnId === (over.id as string))
     if (oldIndex === -1 || newIndex === -1) return
 
     const updated = [...groups]
@@ -212,7 +281,7 @@ export function GroupsPage() {
             Arrastra columnas para agrupar datos, como en Notion.
           </p>
         </div>
-        {databases.length > 1 && (
+        {databases.length > 0 && (
           <Select value={activeDatasetId || ""} onValueChange={(v) => setActiveDatasetId(v)}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Seleccionar dataset" />
@@ -256,36 +325,12 @@ export function GroupsPage() {
               </div>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium mb-2">Niveles de agrupación</h3>
-              <div
-                className={`min-h-[120px] rounded-lg border-2 border-dashed p-3 space-y-2 transition-colors ${
-                  groups.length === 0 ? "border-muted-foreground/30" : "border-primary/30"
-                }`}
-              >
-                {groups.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">
-                    Arrastra columnas aquí para agrupar
-                  </p>
-                ) : (
-                  <SortableContext
-                    items={groups.map((g) => g.columnId)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {groups.map((g, i) => (
-                      <SortableGroupLevel
-                        key={g.columnId}
-                        group={g}
-                        index={i}
-                        columns={columns}
-                        onRemove={() => removeLevel(g.columnId)}
-                        onLabelChange={(label) => handleLabelChange(g.columnId, label)}
-                      />
-                    ))}
-                  </SortableContext>
-                )}
-              </div>
-            </div>
+            <GroupDropZone
+              groups={groups}
+              columns={columns}
+              onRemove={removeLevel}
+              onLabelChange={handleLabelChange}
+            />
           </div>
 
           <DragOverlay>
