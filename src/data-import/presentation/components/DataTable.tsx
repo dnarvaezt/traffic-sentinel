@@ -1,6 +1,7 @@
 "use client"
 
 import { AlertCircle, HelpCircle } from "lucide-react"
+import type * as React from "react"
 import {
   Table,
   TableBody,
@@ -30,7 +31,7 @@ export function DataTable({ schema, data, errors = [] }: DataTableProps) {
     return data.length > 0 && "key" in data[0] && "rows" in data[0]
   }
 
-  const renderRows = (rows: Record<string, any>[] | GroupedData[], depth = 0) => {
+  const renderRows = (rows: Record<string, any>[] | GroupedData[], depth = 0): React.ReactNode => {
     if (isGrouped(rows)) {
       return rows.map((group) => (
         <>
