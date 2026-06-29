@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus, Trash2 } from "lucide-react"
-import type { ColumnTransformer } from "@/data-import/domain/models/column"
+import type { ColumnTransformer } from "@/core/data-import/domain/models/column"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"

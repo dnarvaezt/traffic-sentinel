@@ -16,8 +16,8 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, X } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import type { ColumnDefinition } from "@/data-import/domain/models/column"
-import type { GroupDefinition } from "@/data-import/domain/models/group"
+import type { ColumnDefinition } from "@/core/data-import/domain/models/column"
+import type { GroupDefinition } from "@/core/data-import/domain/models/group"
 import { useProjectStore } from "@/modules/project/hooks/use-project-store"
 import { Badge } from "@/shared/components/ui/badge"
 import {
@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select"
-import { GroupsPreview } from "./GroupsPreview"
+import { GroupsPreview } from "./groups-preview"
 
 function GroupDropZone({
   groups,

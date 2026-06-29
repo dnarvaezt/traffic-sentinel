@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { ColumnDefinition, FilterDefinition, WidgetConfig } from "@/core/project"
-import { WidgetWrapper } from "./WidgetWrapper"
+import { WidgetWrapper } from "./widget-wrapper"
 
 interface DashboardFilterWidgetProps {
   data: Record<string, unknown>[]

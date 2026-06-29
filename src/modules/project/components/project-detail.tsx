@@ -5,9 +5,9 @@ import { redirect, useParams, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { Button } from "@/shared/components/ui/button"
 import { useProjectDetail } from "../hooks/use-project-detail"
-import { ConfigEditor } from "./ConfigEditor"
-import { DatasetsList } from "./DatasetsList"
-import { ProjectLayout } from "./ProjectLayout"
+import { ConfigEditor } from "./config-editor"
+import { DatasetsList } from "./datasets-list"
+import { ProjectLayout } from "./project-layout"
 
 export function ProjectDetail() {
   const params = useParams()

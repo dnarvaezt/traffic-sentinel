@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/components/ui/dialog"
-import { WIDGET_TYPES } from "./WidgetRegistry"
+import { WIDGET_TYPES } from "./widget-registry"
 
 interface AddWidgetPanelProps {
   onAdd: (type: WidgetType) => void

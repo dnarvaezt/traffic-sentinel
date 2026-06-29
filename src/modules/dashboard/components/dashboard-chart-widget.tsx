@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select"
-import { WidgetWrapper } from "./WidgetWrapper"
+import { WidgetWrapper } from "./widget-wrapper"
 
 interface ChartWidgetDashboardProps {
   data: Record<string, unknown>[]

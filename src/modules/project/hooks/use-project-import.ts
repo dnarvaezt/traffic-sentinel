@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import type { SchemaDefinition } from "@/core/data-import/domain/models/schema"
 import type { StoredPipelineResult } from "@/core/dataset/pipeline.service"
 import { deletePipeline, loadPipeline, runPipeline } from "@/core/dataset/pipeline.service"
-import type { SchemaDefinition } from "@/data-import/domain/models/schema"
 import { useProjectStore } from "./use-project-store"
 
 export function useProjectImport(projectId: string) {

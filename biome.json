@@ -25,13 +25,25 @@
       "complexity": {
         "noStaticOnlyClass": "off"
       },
+      "style": {
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "filenameCases": ["kebab-case"]
+          }
+        },
+        "useConst": "warn",
+        "useTemplate": "warn",
+        "noUselessElse": "warn",
+        "useNumericSeparators": "warn",
+        "useExportType": "warn",
+        "useImportType": "warn",
+        "noNonNullAssertion": "off",
+        "useBlockStatements": "off"
+      },
       "suspicious": {
         "noArrayIndexKey": "off",
         "noExplicitAny": "off"
-      },
-      "style": {
-        "useBlockStatements": "off",
-        "noNonNullAssertion": "off"
       },
       "a11y": {
         "noStaticElementInteractions": "off",
@@ -45,7 +57,8 @@
     "formatter": {
       "quoteStyle": "double",
       "semicolons": "asNeeded",
-      "trailingCommas": "all"
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
     }
   },
   "json": {
@@ -65,7 +78,13 @@
     "enabled": true,
     "actions": {
       "source": {
-        "organizeImports": "on"
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": ["**"],
+            "identifierOrder": "natural"
+          }
+        }
       }
     }
   }

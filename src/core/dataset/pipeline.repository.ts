@@ -1,6 +1,6 @@
 // ─── IndexedDB repository for import pipeline results ────────────────────────
 
-import type { ValidationError } from "@/data-import/domain/models/validation"
+import type { ValidationError } from "@/core/data-import/domain/models/validation"
 
 const DB_NAME = "insighthub-pipeline"
 const DB_VERSION = 1

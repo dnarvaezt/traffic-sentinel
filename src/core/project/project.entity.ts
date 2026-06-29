@@ -1,6 +1,6 @@
 // ─── Domain entities & types for the Project domain ─────────────────────────
 
-import type { ColumnDefinition, SchemaDefinition } from "@/data-import/domain/models/schema"
+import type { ColumnDefinition, SchemaDefinition } from "@/core/data-import/domain/models/schema"
 
 export interface Project {
   id: string

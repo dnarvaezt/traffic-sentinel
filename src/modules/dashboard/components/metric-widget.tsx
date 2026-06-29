@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { executeQuery } from "@/core/dataset/dataset.service"
 import type { ColumnDefinition, WidgetConfig } from "@/core/project"
-import { WidgetWrapper } from "./WidgetWrapper"
+import { WidgetWrapper } from "./widget-wrapper"
 
 interface MetricWidgetProps {
   data: Record<string, unknown>[]

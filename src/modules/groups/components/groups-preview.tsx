@@ -2,10 +2,10 @@
 
 import { ChevronDown, ChevronRight, Database, FolderTree, Table2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { groupDataService } from "@/core/data-import/application/group-data/group-data.service"
+import type { ColumnDefinition } from "@/core/data-import/domain/models/column"
+import type { GroupDefinition, GroupedData } from "@/core/data-import/domain/models/group"
 import { loadDatabaseData } from "@/core/dataset"
-import { groupDataService } from "@/data-import/application/group-data/group-data.service"
-import type { ColumnDefinition } from "@/data-import/domain/models/column"
-import type { GroupDefinition, GroupedData } from "@/data-import/domain/models/group"
 import { Badge } from "@/shared/components/ui/badge"
 
 const PREVIEW_LIMIT = 1000

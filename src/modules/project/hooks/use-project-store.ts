@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import type { SchemaDefinition as SchemaDef } from "@/core/data-import/domain/models/schema"
 import type {
   ColumnDefinition,
   Dashboard,
@@ -7,7 +8,6 @@ import type {
   FilterDefinition,
   Project,
 } from "@/core/project"
-import type { SchemaDefinition as SchemaDef } from "@/data-import/domain/models/schema"
 
 function migrateProject(project: Project): Project {
   const hasConfig = !!(project as any).config?.columns?.length

@@ -2,13 +2,13 @@
 
 import { Database, FunctionSquare, Plus, ShieldCheck, Trash2, Wand2 } from "lucide-react"
 import { useMemo, useState } from "react"
-import type { Database as DbRecord } from "@/core/project"
 import type {
   ColumnDefinition,
   ColumnKind,
   ColumnTransformer,
   ColumnValidation,
-} from "@/data-import/domain/models/column"
+} from "@/core/data-import/domain/models/column"
+import type { Database as DbRecord } from "@/core/project"
 import { TransformersEditor } from "@/modules/config-editor/transformers-editor"
 import { ValidatorsEditor } from "@/modules/config-editor/validators-editor"
 import { VirtualColumnsEditor } from "@/modules/config-editor/virtual-columns-editor"

@@ -2,7 +2,7 @@
 
 import { Filter, Pencil, Plus, Search, Trash2 } from "lucide-react"
 import type { FilterOperator } from "@/core/project"
-import { ProjectLayout } from "@/modules/project/components/ProjectLayout"
+import { ProjectLayout } from "@/modules/project/components/project-layout"
 import { Button } from "@/shared/components/ui/button"
 import {
   Dialog,

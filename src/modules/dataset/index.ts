@@ -1,1 +1,1 @@
-export { DatasetView } from "./components/DatasetView"
+export { DatasetView } from "./components/dataset-view"

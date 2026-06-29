@@ -1,6 +1,6 @@
 "use client"
 
-import type { ColumnDefinition } from "@/data-import/domain/models/column"
+import type { ColumnDefinition } from "@/core/data-import/domain/models/column"
 import { Badge } from "@/shared/components/ui/badge"
 import { Label } from "@/shared/components/ui/label"
 

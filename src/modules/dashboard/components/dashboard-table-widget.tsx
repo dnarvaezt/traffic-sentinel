@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table"
-import { WidgetWrapper } from "./WidgetWrapper"
+import { WidgetWrapper } from "./widget-wrapper"
 
 interface DashboardTableWidgetProps {
   data: Record<string, unknown>[]

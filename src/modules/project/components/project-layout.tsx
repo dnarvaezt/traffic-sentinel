@@ -14,8 +14,8 @@ import {
 } from "lucide-react"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import { exportDataService } from "@/core/data-import/application/export-data/export-data.service"
 import { loadDatabaseData } from "@/core/dataset"
-import { exportDataService } from "@/data-import/application/export-data/export-data.service"
 import { Button } from "@/shared/components/ui/button"
 import {
   Dialog,

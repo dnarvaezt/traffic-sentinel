@@ -1,1 +1,1 @@
-export { FiltersView } from "./components/FiltersView"
+export { FiltersView } from "./components/filters-view"

@@ -1,7 +1,7 @@
 "use client"
 
+import type { SchemaDefinition } from "@/core/data-import/domain/models/schema"
 import type { Database as DbRecord } from "@/core/project"
-import type { SchemaDefinition } from "@/data-import/domain/models/schema"
 import { ColumnsEditor } from "@/modules/config-editor"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 

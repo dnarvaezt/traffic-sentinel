@@ -1,1 +1,1 @@
-export { GroupsPage } from "./components/GroupsPage"
+export { GroupsPage } from "./components/groups-page"

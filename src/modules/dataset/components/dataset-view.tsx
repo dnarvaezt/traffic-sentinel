@@ -6,7 +6,7 @@ import { DataTable } from "@/modules/table"
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
 import { useDatasetView } from "../hooks/use-dataset-view"
-import { SessionFilterPanel } from "./SessionFilterPanel"
+import { SessionFilterPanel } from "./session-filter-panel"
 
 export function DatasetView() {
   const {

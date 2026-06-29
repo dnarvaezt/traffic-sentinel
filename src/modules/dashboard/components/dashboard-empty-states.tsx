@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select"
-import { WIDGET_TYPES } from "./WidgetRegistry"
+import { WIDGET_TYPES } from "./widget-registry"
 
 interface DashboardEmptyStatesProps {
   projectId: string

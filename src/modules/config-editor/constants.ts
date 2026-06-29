@@ -1,4 +1,4 @@
-import type { ColumnDefinition } from "@/data-import/domain/models/column"
+import type { ColumnDefinition } from "@/core/data-import/domain/models/column"
 
 export type ColumnType = ColumnDefinition["type"]
 

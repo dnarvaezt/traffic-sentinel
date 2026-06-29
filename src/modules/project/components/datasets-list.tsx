@@ -34,7 +34,7 @@ import {
 } from "@/shared/components/ui/table"
 import { Textarea } from "@/shared/components/ui/textarea"
 import type { SortField } from "../hooks/use-project-detail"
-import { SetupWizard } from "./SetupWizard"
+import { SetupWizard } from "./setup-wizard"
 
 interface DatasetsListProps {
   projectId: string

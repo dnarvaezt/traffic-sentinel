@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus, Trash2 } from "lucide-react"
-import type { ColumnValidation } from "@/data-import/domain/models/column"
+import type { ColumnValidation } from "@/core/data-import/domain/models/column"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"

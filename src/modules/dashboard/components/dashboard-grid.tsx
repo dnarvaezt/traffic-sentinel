@@ -4,10 +4,10 @@ import { GridLayout, type Layout } from "react-grid-layout"
 import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
 import type { ColumnDefinition, Widget, WidgetConfig } from "@/core/project"
-import { DashboardChartWidget } from "./DashboardChartWidget"
-import { DashboardFilterWidget } from "./DashboardFilterWidget"
-import { DashboardTableWidget } from "./DashboardTableWidget"
-import { MetricWidget } from "./MetricWidget"
+import { DashboardChartWidget } from "./dashboard-chart-widget"
+import { DashboardFilterWidget } from "./dashboard-filter-widget"
+import { DashboardTableWidget } from "./dashboard-table-widget"
+import { MetricWidget } from "./metric-widget"
 
 interface DashboardGridProps {
   widgets: Widget[]

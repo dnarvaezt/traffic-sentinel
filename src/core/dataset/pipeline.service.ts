@@ -1,7 +1,7 @@
 // ─── Pipeline service: run ImportEngine + persist results ────────────────────
 
-import { importEngine } from "@/data-import/application/import-engine"
-import type { SchemaDefinition } from "@/data-import/domain/models/schema"
+import { importEngine } from "@/core/data-import/application/import-engine"
+import type { SchemaDefinition } from "@/core/data-import/domain/models/schema"
 import {
   buildPipelineKey,
   deletePipelineResult,

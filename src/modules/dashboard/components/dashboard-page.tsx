@@ -24,10 +24,10 @@ import {
   SheetTitle,
 } from "@/shared/components/ui/sheet"
 import { useDashboardStore } from "../hooks/use-dashboard-store"
-import { AddWidgetPanel } from "./AddWidgetPanel"
-import { DashboardEmptyStates } from "./DashboardEmptyStates"
-import { DashboardGrid } from "./DashboardGrid"
-import { WIDGET_REGISTRY, WIDGET_TYPES } from "./WidgetRegistry"
+import { AddWidgetPanel } from "./add-widget-panel"
+import { DashboardEmptyStates } from "./dashboard-empty-states"
+import { DashboardGrid } from "./dashboard-grid"
+import { WIDGET_REGISTRY, WIDGET_TYPES } from "./widget-registry"
 
 interface DashboardPageProps {
   projectId: string
