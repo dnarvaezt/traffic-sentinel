@@ -1,44 +1,88 @@
-"use client"
+import { useCallback, useEffect, useRef, useState } from "react"
+import type { ListOptions, PaginatedResult, Project, ProjectSortField, SortOrder } from "@/core"
+import { createProjectRepository, type ProjectStore } from "@/core"
 
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { useProjectStore } from "./use-project-store"
+function createStore(): ProjectStore {
+  return createProjectRepository()
+}
 
 export function useProjects() {
-  const router = useRouter()
-  const { projects, createProject, deleteProject } = useProjectStore()
-  const [mounted, setMounted] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
+  const [projects, setProjects] = useState<Project[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [sortField, setSortField] = useState<ProjectSortField>("createdAt")
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
+  const storeRef = useRef<ProjectStore>(createStore())
+
+  const loadProjects = useCallback(async () => {
+    setLoading(true)
+    try {
+      const options: ListOptions = { page, pageSize, sortBy: sortField, sortOrder }
+      if (search.trim()) options.search = search.trim()
+      const result: PaginatedResult<Project> = await storeRef.current.list(options)
+      setProjects(result.data)
+      setTotal(result.total)
+    } finally {
+      setLoading(false)
+    }
+  }, [page, pageSize, sortField, sortOrder, search])
 
   useEffect(() => {
-    setMounted(true)
+    loadProjects()
+  }, [loadProjects])
+
+  const debouncedRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    if (debouncedRef.current) clearTimeout(debouncedRef.current)
+    debouncedRef.current = setTimeout(() => {
+      setPage(1)
+    }, 300)
   }, [])
 
-  function handleCreate() {
-    if (!name.trim()) return
-    const project = createProject(name.trim(), description.trim())
-    setDialogOpen(false)
-    setName("")
-    setDescription("")
-    router.push(`/projects/${project.id}`)
-  }
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage)
+  }, [])
 
-  function handleDelete(id: string) {
-    deleteProject(id)
-  }
+  const handlePageSizeChange = useCallback((newSize: number) => {
+    setPageSize(newSize)
+    setPage(1)
+  }, [])
+
+  const handleSortChange = useCallback((field: ProjectSortField, order: SortOrder) => {
+    setSortField(field)
+    setSortOrder(order)
+    setPage(1)
+  }, [])
+
+  const handleCreate = useCallback(
+    async (name: string, description?: string) => {
+      await storeRef.current.create(name, description)
+      setPage(1)
+      await loadProjects()
+    },
+    [loadProjects],
+  )
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   return {
-    mounted,
     projects,
-    dialogOpen,
-    setDialogOpen,
-    name,
-    setName,
-    description,
-    setDescription,
+    total,
+    totalPages,
+    loading,
+    search,
+    page,
+    pageSize,
+    sortField,
+    sortOrder,
+    handleSearchChange,
+    handlePageChange,
+    handlePageSizeChange,
+    handleSortChange,
     handleCreate,
-    handleDelete,
   }
 }

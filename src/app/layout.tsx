@@ -1,6 +1,11 @@
 import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 import "./globals.css"
-import { Theme } from "@radix-ui/themes"
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
 
 export const metadata: Metadata = {
   title: "InsightHub",
@@ -9,12 +14,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
-        <Theme appearance="dark" accentColor="grass" grayColor="sand">
-          {children}
-        </Theme>
-      </body>
+    <html lang="es" suppressHydrationWarning className={inter.variable}>
+      <body>{children}</body>
     </html>
   )
 }

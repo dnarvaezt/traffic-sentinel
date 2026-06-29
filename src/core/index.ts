@@ -1,5 +1,3 @@
-export type { IndexedDbClient, IndexedDbStoreConfig } from "./db"
-export { getIndexedDbClient } from "./db"
 export type {
   Alignment,
   ColumnDefinition,
@@ -7,7 +5,7 @@ export type {
   ColumnTransformer,
   ColumnType,
   ColumnValidation,
-} from "./domain/column"
+} from "./column"
 export type {
   AggregationType,
   Dashboard,
@@ -18,26 +16,30 @@ export type {
   WidgetConfig,
   WidgetPosition,
   WidgetType,
-} from "./domain/dashboard"
-export { createDashboard, createWidget } from "./domain/dashboard"
-export { DashboardStore } from "./domain/dashboard.repository"
-export type { Dataset } from "./domain/dataset"
-export { createDataset } from "./domain/dataset"
-export { DatasetStore } from "./domain/dataset.repository"
+} from "./dashboard"
+export {
+  createDashboard,
+  createDashboardRepository,
+  createWidget,
+  DashboardStore,
+} from "./dashboard"
+export type { Dataset } from "./dataset"
+export { createDataset, createDatasetRepository, DatasetStore } from "./dataset"
+export type { IndexedDbClient, IndexedDbStoreConfig } from "./db"
+export { getIndexedDbClient } from "./db"
 export type {
   FilterCondition,
   FilterDefinition,
   FilterOperator,
-} from "./domain/filter"
-export type { Project } from "./domain/project"
-export { createProject } from "./domain/project"
+} from "./filter"
 export type {
   ListOptions,
   PaginatedResult,
+  Project,
   ProjectFilter,
   ProjectSortField,
   SortOrder,
-} from "./domain/project.repository"
-export { ProjectStore } from "./domain/project.repository"
-export type { GroupConfig, Schema, SchemaConfig } from "./domain/schema"
-export { createSchema } from "./domain/schema"
+} from "./project"
+export { createProject, createProjectRepository, ProjectStore } from "./project"
+export type { GroupConfig, Schema, SchemaConfig } from "./schema"
+export { createSchema } from "./schema"

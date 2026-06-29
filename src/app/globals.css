@@ -1,46 +1,45 @@
-@import "@radix-ui/themes/tokens.css";
 @import "tailwindcss";
 
-@plugin "tailwindcss-animate";
+@theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--color-background);
-  --color-foreground: var(--gray-12);
-
-  --color-card: var(--gray-2);
-  --color-card-foreground: var(--gray-12);
-
-  --color-popover: var(--color-panel-solid);
-  --color-popover-foreground: var(--gray-12);
-
-  --color-primary: var(--accent-9);
-  --color-primary-foreground: var(--accent-contrast);
-
-  --color-secondary: var(--gray-4);
-  --color-secondary-foreground: var(--gray-12);
-
-  --color-muted: var(--gray-3);
-  --color-muted-foreground: var(--gray-11);
-
-  --color-accent: var(--gray-4);
-  --color-accent-foreground: var(--gray-12);
-
-  --color-destructive: var(--red-9);
-  --color-destructive-foreground: var(--red-contrast);
-
-  --color-border: var(--gray-6);
-  --color-input: var(--gray-7);
-  --color-ring: var(--accent-8);
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(0 0% 3.9%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(0 0% 3.9%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(0 0% 3.9%);
+  --color-primary: hsl(0 0% 9%);
+  --color-primary-foreground: hsl(0 0% 98%);
+  --color-secondary: hsl(0 0% 96.1%);
+  --color-secondary-foreground: hsl(0 0% 9%);
+  --color-muted: hsl(0 0% 96.1%);
+  --color-muted-foreground: hsl(0 0% 45.1%);
+  --color-accent: hsl(0 0% 96.1%);
+  --color-accent-foreground: hsl(0 0% 9%);
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-border: hsl(0 0% 89.8%);
+  --color-input: hsl(0 0% 89.8%);
+  --color-ring: hsl(0 0% 3.9%);
+  --color-chart-1: hsl(12 76% 61%);
+  --color-chart-2: hsl(173 58% 39%);
+  --color-chart-3: hsl(197 37% 24%);
+  --color-chart-4: hsl(43 74% 66%);
+  --color-chart-5: hsl(27 87% 67%);
+  --radius: 0.5rem;
 }
 
 @layer base {
   * {
-    border-color: var(--gray-6);
+    border-color: var(--color-border);
   }
   body {
     background-color: var(--color-background);
-    color: var(--gray-12);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
