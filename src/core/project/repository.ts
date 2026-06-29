@@ -47,7 +47,7 @@ export class ProjectStore {
 
   async update(
     id: string,
-    updates: Partial<Pick<Project, "name" | "description">>,
+    updates: Partial<Pick<Project, "name" | "description" | "schema">>,
   ): Promise<Project | undefined> {
     const existing = await this.read(id)
     if (!existing) return undefined

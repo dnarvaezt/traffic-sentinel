@@ -163,7 +163,11 @@ export function HomePage() {
             <TableBody>
               {projects.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <a href={`/projects/${p.id}`} className="hover:text-primary transition-colors">
+                      {p.name}
+                    </a>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{p.description || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {p.createdAt.toLocaleDateString()}

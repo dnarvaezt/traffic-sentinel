@@ -1,1 +1,5 @@
+export { DatasetImportPage } from "./pages/dataset-import-page"
+export { DatasetViewerPage } from "./pages/dataset-viewer-page"
 export { HomePage } from "./pages/home-page"
+export { ProjectDetailPage } from "./pages/project-detail-page"
+export { SchemaConfigPage } from "./pages/schema-config-page"
