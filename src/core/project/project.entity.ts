@@ -1,34 +1,19 @@
 // ─── Domain entities & types for the Project domain ─────────────────────────
 
+import type { ColumnDefinition, SchemaDefinition } from "@/data-import/domain/models/schema"
+
 export interface Project {
   id: string
   name: string
   description?: string
-  schema: Schema
+  config: SchemaDefinition
   databases: Database[]
   filters: FilterDefinition[]
-  metrics: MetricDefinition[]
-  groupBys: GroupByDefinition[]
-  sorts: SortDefinition[]
-  mappings: Mapping[]
   dashboards: Dashboard[]
+  wizardCompleted: boolean
   createdAt: Date
   updatedAt: Date
 }
-
-export interface Schema {
-  columns: ColumnDefinition[]
-}
-
-export interface ColumnDefinition {
-  id: string
-  name: string
-  type: ColumnType
-  label?: string
-  description?: string
-}
-
-export type ColumnType = "string" | "number" | "date" | "boolean" | "email" | "url"
 
 export interface Database {
   id: string
@@ -38,28 +23,10 @@ export interface Database {
   favorite?: boolean
   activeFilterId?: string
   temporaryFilter?: FilterDefinition
-  columns: DatabaseColumn[]
+  columns: ColumnDefinition[]
   data: Record<string, unknown>[]
   rowCount: number
   uploadedAt: Date
-}
-
-export interface DatabaseColumn {
-  name: string
-  inferredType: string
-}
-
-export interface Mapping {
-  id: string
-  projectId: string
-  databaseId: string
-  physicalTableId: string
-  columnMappings: ColumnMapping[]
-}
-
-export interface ColumnMapping {
-  schemaColumnId: string
-  physicalColumnName: string
 }
 
 export interface Dashboard {
@@ -109,6 +76,15 @@ export interface FilterDefinition {
   id: string
   name: string
   description?: string
+  columnId: string
+  operator: FilterOperator
+  value: unknown
+  enabled?: boolean
+  groupOperator?: "and" | "or"
+  conditions?: FilterCondition[]
+}
+
+export interface FilterCondition {
   columnId: string
   operator: FilterOperator
   value: unknown

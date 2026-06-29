@@ -1,68 +1,40 @@
 "use client"
 
-import {
-  ArrowLeft,
-  FileSpreadsheet,
-  Filter,
-  Pencil,
-  Plus,
-  Settings,
-  Star,
-  Trash2,
-  Upload,
-} from "lucide-react"
-import Link from "next/link"
-import type { FilterOperator } from "@/core/project"
-import { FILTER_OPERATORS } from "@/modules/filters"
+import { Filter } from "lucide-react"
+import { redirect, useParams, useSearchParams } from "next/navigation"
+import { useEffect } from "react"
 import { Button } from "@/shared/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/components/ui/dialog"
-import { Input } from "@/shared/components/ui/input"
-import { Label } from "@/shared/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table"
-import { Textarea } from "@/shared/components/ui/textarea"
 import { useProjectDetail } from "../hooks/use-project-detail"
+import { ConfigEditor } from "./ConfigEditor"
+import { DatasetsList } from "./DatasetsList"
+import { ProjectLayout } from "./ProjectLayout"
 
 export function ProjectDetail() {
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const projectId = params.id as string
+  const activeTabParam = (searchParams.get("tab") as string) || "datasets"
+  if (activeTabParam === "data") {
+    redirect(`/projects/${projectId}?tab=datasets`)
+  }
+  const activeTab = activeTabParam
+
   const {
-    projectId,
     projectData,
     mounted,
-    router,
-    activeTab,
-    setActiveTab,
     uploading,
     fileInputRef,
-    editProjectOpen,
-    setEditProjectOpen,
-    projectName,
-    setProjectName,
-    projectDescription,
-    setProjectDescription,
-    handleSaveProject,
+    searchQuery,
+    setSearchQuery,
+    sortField,
+    toggleSort,
+    filteredDatasets,
     handleFileSelect,
     handleDeleteDataset,
+    deleteConfirmOpen,
+    setDeleteConfirmOpen,
+    deletingDataset,
+    confirmDelete,
     datasetEditOpen,
     setDatasetEditOpen,
     datasetName,
@@ -72,429 +44,141 @@ export function ProjectDetail() {
     openDatasetEdit,
     handleDatasetSave,
     handleToggleFavorite,
-    filterDialogOpen,
-    setFilterDialogOpen,
-    editingFilter,
-    filterName,
-    setFilterName,
-    filterDescription,
-    setFilterDescription,
-    filterColumnId,
-    setFilterColumnId,
-    filterOperator,
-    setFilterOperator,
-    filterValue,
-    setFilterValue,
-    openFilterDialog,
-    handleFilterSave,
-    handleDeleteFilter,
+    renamingId,
+    renamingValue,
+    setRenamingValue,
+    startRename,
+    commitRename,
+    cancelRename,
+    updateConfig,
+    setWizardCompleted,
+    router,
   } = useProjectDetail()
 
-  if (!mounted) return null
+  useEffect(() => {
+    if (!mounted || !projectData) return
+    const hasColumns = (projectData.config?.columns?.length ?? 0) > 0
+    const hasDatasets = (projectData.databases?.length ?? 0) > 0
+    if (hasColumns && hasDatasets && !projectData.wizardCompleted) {
+      setWizardCompleted(projectData.id, true)
+    }
+  }, [mounted, projectData, setWizardCompleted])
 
-  const schemaColumns = projectData?.schema?.columns || []
-
-  if (!projectData) {
-    return (
-      <main className="min-h-screen p-8">
-        <p>Proyecto no encontrado</p>
-        <Link href="/projects">
-          <Button className="mt-4">Volver a proyectos</Button>
-        </Link>
-      </main>
-    )
+  function handleDismissWizard() {
+    if (projectData) {
+      setWizardCompleted(projectData.id, true)
+    }
   }
 
-  const navItems = [
-    {
-      id: "datasets" as const,
-      label: "Datasets",
-      href: `/projects/${projectId}`,
-      icon: FileSpreadsheet,
-    },
-    {
-      id: "filters" as const,
-      label: "Filtros",
-      href: `/projects/${projectId}/filters`,
-      icon: Filter,
-      count: projectData.filters?.length ?? 0,
-    },
-    {
-      id: "schema" as const,
-      label: "Schema",
-      href: `/projects/${projectId}/schema`,
-      icon: Settings,
-    },
-  ]
+  if (!mounted) return null
+  if (!projectData) return null
+
+  const schemaColumns = projectData.config?.columns || []
+  const allDatasets = projectData.databases || []
+  const showWizard =
+    !projectData.wizardCompleted && (allDatasets.length === 0 || schemaColumns.length === 0)
 
   return (
-    <main className="min-h-screen flex">
-      <aside className="w-64 border-r p-4 space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push("/projects")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver
-        </Button>
-
-        <div className="pt-2 border-t">
-          <p className="text-sm font-semibold px-2 mb-2 truncate">{projectData.name}</p>
-          <p className="text-xs text-muted-foreground px-2 line-clamp-2">
-            {projectData.description || "Sin descripción"}
-          </p>
+    <ProjectLayout>
+      {activeTab === "config" && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Configuración</h2>
+          <ConfigEditor
+            config={projectData.config || { columns: [] }}
+            onConfigChange={(config) => updateConfig(projectId, config)}
+            databases={projectData.databases}
+          />
         </div>
+      )}
 
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Navegación</h2>
-          {navItems.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => {
-                if (item.id === "datasets" || item.id === "filters") {
-                  setActiveTab(item.id)
-                }
-                router.push(item.href)
-              }}
-              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-colors ${
-                activeTab === item.id ? "bg-secondary" : "hover:bg-accent"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </span>
-              {item.count !== undefined && (
-                <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{item.count}</span>
-              )}
-            </button>
-          ))}
-        </div>
+      {activeTab === "datasets" && (
+        <DatasetsList
+          projectId={projectId}
+          filteredDatasets={filteredDatasets}
+          allDatasets={allDatasets}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          uploading={uploading}
+          fileInputRef={fileInputRef}
+          handleFileSelect={handleFileSelect}
+          sortField={sortField}
+          toggleSort={toggleSort}
+          handleToggleFavorite={handleToggleFavorite}
+          renamingId={renamingId}
+          renamingValue={renamingValue}
+          setRenamingValue={setRenamingValue}
+          startRename={startRename}
+          commitRename={commitRename}
+          cancelRename={cancelRename}
+          handleDeleteDataset={handleDeleteDataset}
+          deleteConfirmOpen={deleteConfirmOpen}
+          setDeleteConfirmOpen={setDeleteConfirmOpen}
+          deletingDataset={deletingDataset}
+          confirmDelete={confirmDelete}
+          datasetEditOpen={datasetEditOpen}
+          setDatasetEditOpen={setDatasetEditOpen}
+          datasetName={datasetName}
+          setDatasetName={setDatasetName}
+          datasetDescription={datasetDescription}
+          setDatasetDescription={setDatasetDescription}
+          openDatasetEdit={openDatasetEdit}
+          handleDatasetSave={handleDatasetSave}
+          showWizard={showWizard}
+          handleDismissWizard={handleDismissWizard}
+          router={router}
+        />
+      )}
 
-        <div className="pt-2 border-t">
-          <h2 className="text-sm font-semibold px-2 mb-2">Configuración</h2>
-          <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-start">
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar proyecto
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Editar Proyecto</DialogTitle>
-                <DialogDescription>Modifica los datos de tu proyecto.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="project-name">Nombre</Label>
-                  <Input
-                    id="project-name"
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="project-desc">Descripción</Label>
-                  <Textarea
-                    id="project-desc"
-                    value={projectDescription}
-                    onChange={(e) => setProjectDescription(e.target.value)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditProjectOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSaveProject}>Guardar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </aside>
-
-      <div className="flex-1 p-8 overflow-auto">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {activeTab === "datasets" && (
-            <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Datasets</h2>
-                <label className="flex items-center gap-2 px-3 py-1.5 border rounded-lg cursor-pointer hover:bg-accent transition-colors text-sm">
-                  <Upload className="h-4 w-4" />
-                  <span>Subir CSV</span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-              </div>
-
-              {projectData.databases.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">Fav</TableHead>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Filas</TableHead>
-                      <TableHead>Columnas</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {projectData.databases.map((db) => (
-                      <TableRow key={db.id}>
-                        <TableCell>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleFavorite(db)}
-                            className="flex items-center justify-center"
-                          >
-                            <Star
-                              className={`h-4 w-4 ${db.favorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
-                            />
-                          </button>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <Link
-                            href={`/projects/${projectId}/datasets/${db.id}`}
-                            className="flex items-center gap-2 hover:text-primary"
-                          >
-                            <FileSpreadsheet className="h-4 w-4" />
-                            {db.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{db.rowCount?.toLocaleString() || 0}</TableCell>
-                        <TableCell>{db.columns?.length || 0}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => openDatasetEdit(db)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteDataset(db.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                  <FileSpreadsheet className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No hay datasets cargados</p>
-                  <p className="text-xs">Sube un archivo CSV para comenzar</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === "filters" && (
-            <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Filtros del Proyecto</h2>
-                <Button
-                  size="sm"
-                  onClick={() => openFilterDialog()}
-                  disabled={schemaColumns.length === 0}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nuevo Filtro
-                </Button>
-              </div>
-
-              {projectData.filters?.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Columna</TableHead>
-                      <TableHead>Operador</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {projectData.filters?.map((filter) => {
-                      const column = schemaColumns.find((c) => c.id === filter.columnId)
-                      const operatorLabel = FILTER_OPERATORS.find(
-                        (o) => o.value === filter.operator,
-                      )?.label
-                      return (
-                        <TableRow key={filter.id}>
-                          <TableCell>
-                            <div className="font-medium">{filter.name || "Sin nombre"}</div>
-                            {filter.description && (
-                              <div className="text-xs text-muted-foreground">
-                                {filter.description}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>{column?.name || filter.columnId}</TableCell>
-                          <TableCell>{operatorLabel}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {filter.value !== null ? String(filter.value) : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openFilterDialog(filter)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteFilter(filter.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                  <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No hay filtros configurados</p>
-                  <p className="text-xs">Crea filtros para aplicarlos a tus datasets</p>
-                </div>
-              )}
-
-              {schemaColumns.length === 0 && (
-                <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg">
-                  Define columnas en el Schema primero para poder crear filtros.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      <Dialog open={datasetEditOpen} onOpenChange={setDatasetEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Dataset</DialogTitle>
-            <DialogDescription>Modifica los datos del dataset.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="dataset-name">Nombre</Label>
-              <Input
-                id="dataset-name"
-                value={datasetName}
-                onChange={(e) => setDatasetName(e.target.value)}
-              />
+      {activeTab === "filters" &&
+        (schemaColumns.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg text-muted-foreground text-sm gap-4">
+            <Filter className="h-12 w-12 opacity-20" />
+            <div className="text-center">
+              <p className="font-medium text-foreground">Define columnas en Configuración</p>
+              <p className="text-xs mt-1">
+                Necesitas definir al menos una columna antes de crear filtros.
+              </p>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="dataset-desc">Descripción</Label>
-              <Textarea
-                id="dataset-desc"
-                value={datasetDescription}
-                onChange={(e) => setDatasetDescription(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDatasetEditOpen(false)}>
-              Cancelar
+            <Button variant="default" size="sm" asChild>
+              <a href={`/projects/${projectId}?tab=config`}>Ir a Configuración</a>
             </Button>
-            <Button onClick={handleDatasetSave}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Filtros del Proyecto</h2>
+              <Button size="sm" onClick={() => router.push(`/projects/${projectId}/filters`)}>
+                <Filter className="mr-2 h-4 w-4" />
+                Gestionar Filtros
+              </Button>
+            </div>
 
-      <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingFilter ? "Editar Filtro" : "Nuevo Filtro"}</DialogTitle>
-            <DialogDescription>
-              Configura el filtro para aplicarlo a tus datasets.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="filter-name">Nombre (opcional)</Label>
-              <Input
-                id="filter-name"
-                value={filterName}
-                onChange={(e) => setFilterName(e.target.value)}
-                placeholder="Nombre del filtro"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="filter-column">Columna</Label>
-              <Select value={filterColumnId} onValueChange={setFilterColumnId}>
-                <SelectTrigger id="filter-column">
-                  <SelectValue placeholder="Selecciona una columna" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schemaColumns.map((col) => (
-                    <SelectItem key={col.id} value={col.id}>
-                      {col.name} ({col.type})
-                    </SelectItem>
+            {projectData.filters && projectData.filters.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {projectData.filters.length} filtro(s) configurado(s)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {projectData.filters.map((f) => (
+                    <span
+                      key={f.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary text-xs"
+                    >
+                      <Filter className="h-3 w-3" />
+                      {f.name}
+                    </span>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="filter-operator">Operador</Label>
-              <Select
-                value={filterOperator}
-                onValueChange={(v) => setFilterOperator(v as FilterOperator)}
-              >
-                <SelectTrigger id="filter-operator">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FILTER_OPERATORS.map((op) => (
-                    <SelectItem key={op.value} value={op.value}>
-                      {op.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {filterOperator !== "isNull" && filterOperator !== "isNotNull" && (
-              <div className="grid gap-2">
-                <Label htmlFor="filter-value">Valor</Label>
-                <Input
-                  id="filter-value"
-                  value={filterValue}
-                  onChange={(e) => setFilterValue(e.target.value)}
-                />
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground border rounded-lg">
+                <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No hay filtros configurados</p>
+                <p className="text-xs">Crea filtros desde la sección de Filtros</p>
               </div>
             )}
-            <div className="grid gap-2">
-              <Label htmlFor="filter-description">Descripción (opcional)</Label>
-              <Input
-                id="filter-description"
-                value={filterDescription}
-                onChange={(e) => setFilterDescription(e.target.value)}
-                placeholder="Descripción del filtro"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleFilterSave}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </main>
+          </>
+        ))}
+    </ProjectLayout>
   )
 }

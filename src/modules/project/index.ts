@@ -1,7 +1,7 @@
 export { HomePage } from "./components/HomePage"
 export { ProjectDetail } from "./components/ProjectDetail"
+export type { TabId as TabView } from "./components/ProjectLayout"
 export { ProjectsView } from "./components/ProjectsView"
-export type { TabView } from "./hooks/use-project-detail"
 export { useProjectDetail } from "./hooks/use-project-detail"
 export { useProjectStore } from "./hooks/use-project-store"
 export { useProjects } from "./hooks/use-projects"

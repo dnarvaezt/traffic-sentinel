@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { executeQuery, loadDatabaseData } from "@/core/dataset"
-import type { ColumnType, FilterItem, FilterOperator, SortDefinition } from "@/core/project"
+import type { FilterItem, FilterOperator, SortDefinition } from "@/core/project"
 import { useProjectStore } from "@/modules/project"
 
 const NO_VALUE_OPS = new Set<FilterOperator>(["isNull", "isNotNull"])
@@ -45,10 +45,10 @@ export function useDatasetView() {
   const columns = useMemo(
     () =>
       (dataset?.columns ?? []).map((col) => ({
-        id: col.name,
-        name: col.name,
-        label: col.name,
-        type: (col.inferredType as ColumnType) ?? "string",
+        id: col.id,
+        header: col.header,
+        tooltip: col.header,
+        type: col.type ?? "string",
       })),
     [dataset],
   )
@@ -74,7 +74,7 @@ export function useDatasetView() {
     if (!firstCol) return
     const newFilter: FilterItem = {
       id: crypto.randomUUID(),
-      columnId: firstCol.name,
+      columnId: firstCol.header,
       operator: "contains",
       value: "",
     }

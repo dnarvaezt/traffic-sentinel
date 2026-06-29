@@ -2,51 +2,44 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { deleteDatabaseData, parseCSV, saveDatabaseData } from "@/core/dataset"
-import type { Database as DbType, FilterDefinition, FilterOperator } from "@/core/project"
+import { saveDatabaseData } from "@/core/dataset"
+import type { Database as DbType } from "@/core/project"
+import { useProjectImport } from "./use-project-import"
 import { useProjectStore } from "./use-project-store"
 
-export type TabView = "datasets" | "filters" | "schema"
+export type SortField = "name" | "rowCount" | "columns" | "uploadedAt"
+export type SortDir = "asc" | "desc"
 
 export function useProjectDetail() {
   const params = useParams()
   const router = useRouter()
   const projectId = params.id as string
-  const {
-    getProject,
-    updateProject,
-    addDatabase,
-    updateDatabase,
-    deleteDatabase,
-    addFilter,
-    updateFilter,
-    deleteFilter,
-  } = useProjectStore()
+  const { getProject, addDatabase, updateDatabase, updateConfig, setWizardCompleted } =
+    useProjectStore()
 
   const [mounted, setMounted] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabView>("datasets")
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const projectImport = useProjectImport(projectId)
 
-  // Project edit
-  const [editProjectOpen, setEditProjectOpen] = useState(false)
-  const [projectName, setProjectName] = useState("")
-  const [projectDescription, setProjectDescription] = useState("")
+  // Dataset search + sort
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortField, setSortField] = useState<SortField>("name")
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
 
-  // Dataset edit
+  // Dataset edit dialog
   const [datasetEditOpen, setDatasetEditOpen] = useState(false)
   const [editingDataset, setEditingDataset] = useState<DbType | null>(null)
   const [datasetName, setDatasetName] = useState("")
   const [datasetDescription, setDatasetDescription] = useState("")
 
-  // Filter dialog
-  const [filterDialogOpen, setFilterDialogOpen] = useState(false)
-  const [editingFilter, setEditingFilter] = useState<FilterDefinition | null>(null)
-  const [filterName, setFilterName] = useState("")
-  const [filterDescription, setFilterDescription] = useState("")
-  const [filterColumnId, setFilterColumnId] = useState("")
-  const [filterOperator, setFilterOperator] = useState<FilterOperator>("equals")
-  const [filterValue, setFilterValue] = useState("")
+  // Delete confirmation
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingDataset, setDeletingDataset] = useState<DbType | null>(null)
+
+  // Inline rename
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renamingValue, setRenamingValue] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -54,45 +47,82 @@ export function useProjectDetail() {
 
   const projectData = getProject(projectId)
 
-  useEffect(() => {
-    if (projectData) {
-      setProjectName(projectData.name)
-      setProjectDescription(projectData.description || "")
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
     }
-  }, [projectData])
-
-  function handleSaveProject() {
-    if (!projectName.trim()) return
-    updateProject(projectId, { name: projectName.trim(), description: projectDescription.trim() })
-    setEditProjectOpen(false)
   }
+
+  const filteredDatasets = (projectData?.databases || [])
+    .filter((db) => {
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
+      return db.name.toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case "name":
+          cmp = a.name.localeCompare(b.name)
+          break
+        case "rowCount":
+          cmp = (a.rowCount ?? 0) - (b.rowCount ?? 0)
+          break
+        case "columns":
+          cmp = (a.columns?.length ?? 0) - (b.columns?.length ?? 0)
+          break
+        case "uploadedAt":
+          cmp = new Date(a.uploadedAt ?? 0).getTime() - new Date(b.uploadedAt ?? 0).getTime()
+          break
+      }
+      return sortDir === "asc" ? cmp : -cmp
+    })
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file?.name.endsWith(".csv")) return
     setUploading(true)
     try {
-      const parsed = await parseCSV(file)
-      const database: DbType = {
-        id: crypto.randomUUID(),
-        projectId,
-        name: file.name.replace(".csv", ""),
-        columns: parsed.columns.map((c) => ({ name: c.name, inferredType: c.type })),
-        data: parsed.data,
-        rowCount: parsed.rowCount,
-        uploadedAt: new Date(),
+      const schema = projectData?.config
+      if (!schema || schema.columns.length === 0) {
+        const parsed = await (await import("@/core/dataset")).parseCSV(file)
+        const database: DbType = {
+          id: crypto.randomUUID(),
+          projectId,
+          name: file.name.replace(".csv", ""),
+          columns: parsed.columns.map((c) => ({
+            id: crypto.randomUUID(),
+            header: c.header,
+            type: c.type,
+          })),
+          data: parsed.data,
+          rowCount: parsed.rowCount,
+          uploadedAt: new Date(),
+        }
+        await saveDatabaseData({ id: database.id, projectId, data: database.data })
+        addDatabase(projectId, database)
+      } else {
+        await projectImport.importCSV(file, schema)
       }
-      await saveDatabaseData({ id: database.id, projectId, data: database.data })
-      addDatabase(projectId, database)
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
-  async function handleDeleteDataset(databaseId: string) {
-    await deleteDatabaseData(databaseId)
-    deleteDatabase(projectId, databaseId)
+  function handleDeleteDataset(db: DbType) {
+    setDeletingDataset(db)
+    setDeleteConfirmOpen(true)
+  }
+
+  async function confirmDelete() {
+    if (!deletingDataset) return
+    await projectImport.removeDataset(deletingDataset.id)
+    setDeleteConfirmOpen(false)
+    setDeletingDataset(null)
   }
 
   function openDatasetEdit(db: DbType) {
@@ -116,65 +146,42 @@ export function useProjectDetail() {
     updateDatabase(projectId, db.id, { favorite: !db.favorite })
   }
 
-  function openFilterDialog(filter?: FilterDefinition) {
-    if (!projectData) return
-    if (filter) {
-      setEditingFilter(filter)
-      setFilterName(filter.name || "")
-      setFilterDescription(filter.description || "")
-      setFilterColumnId(filter.columnId)
-      setFilterOperator(filter.operator)
-      setFilterValue(String(filter.value ?? ""))
-    } else {
-      setEditingFilter(null)
-      setFilterName("")
-      setFilterDescription("")
-      setFilterColumnId(projectData.schema.columns[0]?.id || "")
-      setFilterOperator("equals")
-      setFilterValue("")
-    }
-    setFilterDialogOpen(true)
+  function startRename(db: DbType) {
+    setRenamingId(db.id)
+    setRenamingValue(db.name)
   }
 
-  function handleFilterSave() {
-    if (!filterName.trim() || !filterColumnId) return
-    const filterData = {
-      name: filterName.trim(),
-      description: filterDescription.trim() || undefined,
-      columnId: filterColumnId,
-      operator: filterOperator,
-      value: filterOperator === "isNull" || filterOperator === "isNotNull" ? null : filterValue,
+  function commitRename() {
+    if (renamingId && renamingValue.trim()) {
+      updateDatabase(projectId, renamingId, { name: renamingValue.trim() })
     }
-    if (editingFilter) {
-      updateFilter(projectId, editingFilter.id, filterData)
-    } else {
-      addFilter(projectId, { id: crypto.randomUUID(), ...filterData })
-    }
-    setFilterDialogOpen(false)
+    setRenamingId(null)
+    setRenamingValue("")
   }
 
-  function handleDeleteFilter(filterId: string) {
-    deleteFilter(projectId, filterId)
+  function cancelRename() {
+    setRenamingId(null)
+    setRenamingValue("")
   }
 
   return {
     projectId,
     projectData,
     mounted,
-    router,
-    activeTab,
-    setActiveTab,
     uploading,
     fileInputRef,
-    editProjectOpen,
-    setEditProjectOpen,
-    projectName,
-    setProjectName,
-    projectDescription,
-    setProjectDescription,
-    handleSaveProject,
+    searchQuery,
+    setSearchQuery,
+    sortField,
+    sortDir,
+    toggleSort,
+    filteredDatasets,
     handleFileSelect,
     handleDeleteDataset,
+    deleteConfirmOpen,
+    setDeleteConfirmOpen,
+    deletingDataset,
+    confirmDelete,
     datasetEditOpen,
     setDatasetEditOpen,
     editingDataset,
@@ -185,21 +192,15 @@ export function useProjectDetail() {
     openDatasetEdit,
     handleDatasetSave,
     handleToggleFavorite,
-    filterDialogOpen,
-    setFilterDialogOpen,
-    editingFilter,
-    filterName,
-    setFilterName,
-    filterDescription,
-    setFilterDescription,
-    filterColumnId,
-    setFilterColumnId,
-    filterOperator,
-    setFilterOperator,
-    filterValue,
-    setFilterValue,
-    openFilterDialog,
-    handleFilterSave,
-    handleDeleteFilter,
+    renamingId,
+    renamingValue,
+    setRenamingValue,
+    startRename,
+    commitRename,
+    cancelRename,
+    updateConfig,
+    setWizardCompleted,
+    addDatabase,
+    router,
   }
 }
