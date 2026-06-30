@@ -200,10 +200,10 @@ export function SchemaConfigPage() {
                       Alineación
                     </label>
                     <Select
-                      value={col.alignment ?? ""}
+                      value={col.alignment ?? "none"}
                       onValueChange={(v) =>
                         updateColumn(col.id, {
-                          alignment: (v as "left" | "center" | "right") || undefined,
+                          alignment: v === "none" ? undefined : (v as "left" | "center" | "right"),
                         })
                       }
                     >
@@ -211,7 +211,7 @@ export function SchemaConfigPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Por defecto</SelectItem>
+                        <SelectItem value="none">Por defecto</SelectItem>
                         <SelectItem value="left">Izquierda</SelectItem>
                         <SelectItem value="center">Centro</SelectItem>
                         <SelectItem value="right">Derecha</SelectItem>

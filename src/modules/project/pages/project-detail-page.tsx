@@ -33,7 +33,7 @@ export function ProjectDetailPage() {
     )
   }
 
-  const { project } = state
+  const { project, datasetCount } = state
 
   return (
     <div className="min-h-screen p-8 max-w-3xl mx-auto space-y-6">
@@ -61,7 +61,7 @@ export function ProjectDetailPage() {
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Datasets</span>
-          <span>{project.datasets.length}</span>
+          <span>{datasetCount}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Dashboards</span>
